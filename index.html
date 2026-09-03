@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>High-Altitude Anti-Drone System — Environmental Simulator</title>
+<style>
+ :root {
+    --bg-deep: #0a1420;
+    --bg-panel: rgba(15, 30, 46, 0.75);
+    --bg-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80');
+    --line: #1c3348;
+    --cyan: #4dd8e6;
+    --cyan-dim: #2a6b78;
+    --amber: #e6a94d;
+    --red: #e85c4a;
+    --green: #5cd68a;
+    --text-dim: #6f8ca3;
+    --text: #cfe8f0;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
+    font-size: 13px;
+    
+    /* Background setup for crisp full-screen images */
+    background-color: var(--bg-deep);
+    background-image: linear-gradient(rgba(10, 20, 32, 0.82), rgba(10, 20, 32, 0.82)), var(--bg-image);
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    transition: background-image 0.5s ease-in-out;
+}
+
+.radar-pane, .control-pane {
+  background: transparent; /* Allows main background wallpaper to show seamlessly */
+  padding: 20px;
+}
+  .app {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1px;
+    background: transparent; /* Changed from var(--line) */
+    min-height: 100vh;
+  }
+  .radar-pane {
+    background: transparent; /* Changed from var(--bg-deep) */
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .control-pane {
+    background: transparent;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+  .title-block {
+   display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .title-block h1 {
+   font-size: 14px;
+    letter-spacing: 0.12em;
+    margin: 0;
+    color: var(--text);
+    font-weight: 600;
+  }
+  
+  .radar-canvas-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas#radar { max-width: 100%; }
+ .panel {
+  background: var(--bg-panel);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+  .panel-label {
+    color: var(--cyan);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .slider-row {
+    margin-bottom: 14px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .slider-row label span.val {
+    color: var(--text);
+    font-weight: 600;
+  }
+ 
+  .telemetry-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .telemetry-row .num {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .telemetry-row .num.warn { color: var(--amber); }
+  .telemetry-row .num.crit { color: var(--red); }
+  .telemetry-row .num.good { color: var(--green); }
+  .chart-wrap { margin-top: 6px; }
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .legend span::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .legend .l-uncomp::before { background: var(--red); }
+  .legend .l-comp::before { background: var(--green); }
+  .legend .l-active::before { background: var(--green); border-radius: 50%; width: 8px; height: 8px; }
+  .legend .l-oor::before { background: var(--red); width: 8px; height: 8px; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+  .legend .l-dead::before { background: var(--text-dim); width: 8px; height: 2px; transform: rotate(45deg); }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .status-badge.active { background: rgba(92,214,138,0.15); color: var(--green); border: 1px solid var(--green); }
+  .status-badge.degraded { background: rgba(230,169,77,0.15); color: var(--amber); border: 1px solid var(--amber); }
+  .scope-note {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+  .scope-note b { color: var(--text); }
+  .preset-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .preset-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.preset-btn {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(15, 30, 46, 0.9);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 10px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Specific theme highlights on hover */
+.preset-btn.sea:hover { 
+  border-color: var(--green); 
+  box-shadow: 0 0 10px rgba(92, 214, 138, 0.3); 
+  color: var(--green);
+}
+.preset-btn.winter:hover { 
+  border-color: var(--cyan); 
+  box-shadow: 0 0 10px rgba(77, 216, 230, 0.3); 
+  color: var(--cyan);
+}
+.preset-btn.extreme:hover { 
+  border-color: var(--red); 
+  box-shadow: 0 0 10px rgba(232, 92, 74, 0.3); 
+  color: var(--red);
+}
+  .preset-btn:hover { border-color: var(--cyan); color: var(--text); }
+  .preset-btn.sea:hover { border-color: var(--green); }
+  .preset-btn.winter:hover { border-color: var(--amber); }
+  .preset-btn.extreme:hover { border-color: var(--red); }
+  .reset-btn {
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    padding: 8px 6px;
+    border-radius: 2px;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .reset-btn:hover { border-color: var(--cyan); color: var(--text); }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-row input { cursor: pointer; }
+  .improvement-banner {
+    background: rgba(92,214,138,0.08);
+    border: 1px solid var(--green);
+    border-radius: 2px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .improvement-banner .big {
+    color: var(--green);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .improvement-banner .lbl {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+ /* ============================================================================
+   TELEMETRY NUMBERS & BADGES (MATCHES SCREENSHOT)
+   ============================================================================ */
+.num {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: right;
+  background: transparent !important; /* Removes solid background boxes */
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: #ffb830 !important; /* Amber default value color */
+}
+
+/* Specific text color accents to match reference */
+.num.good {
+  color: #2ee59d !important; /* Green text for optimal/error stats */
+}
+.num.warn {
+  color: #ffb830 !important; /* Amber text */
+}
+.num.crit {
+  color: #ff5252 !important; /* Red text */
+}
+
+/* Status Badge styling */
+.status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+.status-badge.degraded {
+  background: rgba(255, 184, 48, 0.15);
+  color: #ffb830;
+  border: 1px solid rgba(255, 184, 48, 0.4);
+}
+.status-badge.active {
+  background: rgba(46, 229, 157, 0.15);
+  color: #2ee59d;
+  border: 1px solid rgba(46, 229, 157, 0.4);
+}
+
+/* ============================================================================
+   FIX CHART CANVAS CUTTING OFF / CLIPPING
+   ============================================================================ */
+.chart-wrap {
+  width: 100%;
+  margin-top: 8px;
+  background: rgba(5, 14, 24, 0.4);
+  border: 1px solid rgba(77, 216, 230, 0.15);
+  border-radius: 4px;
+  padding: 0;                   /* Removed padding so lines don't get clipped at edges */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.chart-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 80px !important;
+}
+/* ============================================================================
+   FINAL HUD-STYLE CONTROLS
+   Compact + shiny sliders inspired by the reference simulator
+   ============================================================================ */
+
+/* ---------- ENVIRONMENT PANEL ---------- */
+
+.control-pane {
+  gap: 8px;
+}
+
+.panel {
+  padding: 9px 5px;
+  border-radius: 5px;
+  background: rgba(10, 24, 38, 0.82);
+  border: 1px solid rgba(77, 216, 230, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.025),
+    0 4px 14px rgba(0,0,0,0.18);
+}
+
+
+/* ---------- PANEL HEADINGS ---------- */
+
+.panel-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  margin-bottom: 9px;
+  color: #4dd8e6;
+}
+
+
+/* ---------- SCENARIO BUTTONS ---------- */
+
+.preset-row {
+  display: flex;
+  gap: 7px;
+  flex-wrap: nowrap;
+  margin-bottom: 10px !important;
+}
+
+.preset-btn {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+
+  height: 28px;
+  padding: 0 6px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(24, 45, 61, 0.95),
+    rgba(9, 25, 39, 0.95)
+  );
+
+  border: 1px solid rgba(77, 216, 230, 0.22);
+  border-radius: 3px;
+
+  color: #8da4b5;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  cursor: pointer;
+  text-align: center;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 2px 5px rgba(0,0,0,0.25);
+}
+
+
+/* Small glowing line at bottom of button */
+
+.preset-btn::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 3px;
+  height: 1px;
+  opacity: 0;
+
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+
+  transition: opacity 0.2s ease;
+}
+
+
+/* SEA LEVEL */
+
+.preset-btn.sea:hover,
+.preset-btn.sea.active {
+  color: #5cd68a;
+  border-color: rgba(92,214,138,0.75);
+
+  background: linear-gradient(
+    180deg,
+    rgba(92,214,138,0.16),
+    rgba(9,25,39,0.95)
+  );
+
+  box-shadow:
+    0 0 10px rgba(92,214,138,0.18),
+    inset 0 0 8px rgba(92,214,138,0.05);
+}
+
+.preset-btn.sea:hover::after,
+.preset-btn.sea.active::after {
+  opacity: 1;
+}
+
+
+/* WINTER */
+
+.preset-btn.winter:hover,
+.preset-btn.winter.active {
+  color: #4dd8e6;
+  border-color: rgba(77,216,230,0.8);
+
+  background: linear-gradient(
+    180deg,
+    rgba(77,216,230,0.16),
+    rgba(9,25,39,0.95)
+  );
+
+  box-shadow:
+    0 0 10px rgba(77,216,230,0.2),
+    inset 0 0 8px rgba(77,216,230,0.05);
+}
+
+.preset-btn.winter:hover::after,
+.preset-btn.winter.active::after {
+  opacity: 1;
+}
+
+
+/* HIMALAYAN */
+
+.preset-btn.extreme:hover,
+.preset-btn.extreme.active {
+  color: #ffb830;
+  border-color: rgba(255,184,48,0.8);
+
+  background: linear-gradient(
+    180deg,
+    rgba(255,184,48,0.15),
+    rgba(9,25,39,0.95)
+  );
+
+  box-shadow:
+    0 0 10px rgba(255,184,48,0.18),
+    inset 0 0 8px rgba(255,184,48,0.05);
+}
+
+.preset-btn.extreme:hover::after,
+.preset-btn.extreme.active::after {
+  opacity: 1;
+}
+
+
+/* Click feedback */
+
+.preset-btn:active {
+  transform: scale(0.98);
+}
+
+
+/* ============================================================================
+   SLIDER ROWS
+   ============================================================================ */
+
+.slider-row {
+  margin-bottom: 11px;
+}
+
+.slider-row:last-child {
+  margin-bottom: 0;
+}
+
+.slider-row label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 10px;
+  letter-spacing: 0.03em;
+
+  color: #7893a7;
+  margin-bottom: 6px;
+}
+
+.slider-row label span.val {
+  color: #cfe8f0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+
+/* ============================================================================
+   BASE SLIDER
+   ============================================================================ */
+
+.slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+
+  width: 100%;
+  height: 4px;
+
+  margin: 0;
+  padding: 0;
+
+  border: none;
+  outline: none;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.35),
+      rgba(77,216,230,0.08)
+    );
+
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.7),
+    0 0 3px rgba(77,216,230,0.08);
+
+  cursor: pointer;
+}
+
+
+/* ---------- CHROME / EDGE TRACK ---------- */
+
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.42),
+      rgba(77,216,230,0.12)
+    );
+
+  border: none;
+}
+
+
+/* ---------- FIREFOX TRACK ---------- */
+
+.slider-row input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.42),
+      rgba(77,216,230,0.12)
+    );
+
+  border: none;
+}
+
+
+/* ============================================================================
+   SHINY SLIDER THUMB
+   ============================================================================ */
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+
+  width: 13px;
+  height: 13px;
+
+  margin-top: -4.5px;
+
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #72f0fa 35%,
+      #4dd8e6 70%,
+      #2ba9b8 100%
+    );
+
+  border: 1px solid #dfffff;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 4px rgba(77,216,230,0.9),
+    0 0 10px rgba(77,216,230,0.55),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+
+  box-shadow:
+    0 0 5px rgba(77,216,230,1),
+    0 0 14px rgba(77,216,230,0.8),
+    inset 0 1px 2px rgba(255,255,255,0.9);
+}
+
+
+/* Firefox */
+
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #72f0fa 35%,
+      #4dd8e6 70%,
+      #2ba9b8 100%
+    );
+
+  border: 1px solid #dfffff;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 4px rgba(77,216,230,0.9),
+    0 0 10px rgba(77,216,230,0.55);
+}
+
+
+/* ============================================================================
+   DIFFERENT SLIDER COLORS
+   ============================================================================ */
+
+/* TEMPERATURE = AMBER */
+
+#tempSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,184,48,0.55),
+      rgba(255,184,48,0.10)
+    );
+}
+
+#tempSlider::-webkit-slider-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #fff7d6,
+      #ffd166,
+      #ffb830,
+      #e68a18
+    );
+
+  border-color: #fff1bd;
+
+  box-shadow:
+    0 0 4px rgba(255,184,48,1),
+    0 0 12px rgba(255,184,48,0.65),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+}
+
+#tempSlider::-moz-range-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,184,48,0.55),
+      rgba(255,184,48,0.10)
+    );
+}
+
+#tempSlider::-moz-range-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #fff7d6,
+      #ffd166,
+      #ffb830,
+      #e68a18
+    );
+
+  border-color: #fff1bd;
+
+  box-shadow:
+    0 0 4px rgba(255,184,48,1),
+    0 0 12px rgba(255,184,48,0.65);
+}
+
+
+/* WIND = CYAN */
+
+#windSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.55),
+      rgba(77,216,230,0.10)
+    );
+}
+
+#windSlider::-moz-range-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.55),
+      rgba(77,216,230,0.10)
+    );
+}
+
+
+/* ALTITUDE = GREEN */
+
+#altSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(92,214,138,0.55),
+      rgba(92,214,138,0.10)
+    );
+}
+
+#altSlider::-webkit-slider-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #eafff1,
+      #75f0a5,
+      #5cd68a,
+      #32a965
+    );
+
+  border-color: #d7ffe5;
+
+  box-shadow:
+    0 0 4px rgba(92,214,138,1),
+    0 0 12px rgba(92,214,138,0.65),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+}
+
+#altSlider::-moz-range-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(92,214,138,0.55),
+      rgba(92,214,138,0.10)
+    );
+}
+
+#altSlider::-moz-range-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #eafff1,
+      #75f0a5,
+      #5cd68a,
+      #32a965
+    );
+
+  border-color: #d7ffe5;
+
+  box-shadow:
+    0 0 4px rgba(92,214,138,1),
+    0 0 12px rgba(92,214,138,0.65);
+}
+
+
+/* ============================================================================
+   IMPROVEMENT BANNER — MORE COMPACT
+   ============================================================================ */
+
+.improvement-banner {
+  padding: 7px 10px;
+  min-height: 55px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(92,214,138,0.09),
+      rgba(20,45,50,0.35)
+    );
+
+  border: 1px solid rgba(92,214,138,0.55);
+
+  box-shadow:
+    0 0 12px rgba(92,214,138,0.06),
+    inset 0 0 12px rgba(92,214,138,0.025);
+}
+
+.improvement-banner .big {
+  font-size: 21px;
+  line-height: 22px;
+
+  text-shadow:
+    0 0 8px rgba(92,214,138,0.35);
+}
+
+.improvement-banner .lbl {
+  font-size: 8px;
+  margin-top: 2px;
+}
+
+
+/* ============================================================================
+   TELEMETRY — COMPACT
+   ============================================================================ */
+
+.telemetry-row {
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.telemetry-row .num {
+  font-size: 11px;
+}
+
+
+/* ============================================================================
+   ERROR CHART
+   ============================================================================ */
+
+.chart-wrap {
+  margin-top: 5px;
+
+  height: 78px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3,12,21,0.75),
+      rgba(8,20,31,0.5)
+    );
+
+  border: 1px solid rgba(77,216,230,0.14);
+
+  box-shadow:
+    inset 0 0 10px rgba(0,0,0,0.25);
+}
+
+.chart-wrap canvas {
+  height: 76px !important;
+}
+
+
+/* ============================================================================
+   BASELINE TOGGLE
+   ============================================================================ */
+
+.toggle-row {
+  gap: 6px;
+  font-size: 9px;
+}
+
+.toggle-row input {
+  accent-color: #4dd8e6;
+  width: 13px;
+  height: 13px;
+}
+
+
+/* ============================================================================
+   RESET BUTTON
+   ============================================================================ */
+
+.reset-btn {
+  width: 100%;
+  height: 26px;
+
+  margin-top: 8px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(19,39,54,0.9),
+      rgba(8,22,35,0.95)
+    );
+
+  border: 1px solid rgba(77,216,230,0.22);
+  border-radius: 3px;
+
+  color: #8da4b5;
+
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.reset-btn:hover {
+  color: #4dd8e6;
+  border-color: rgba(77,216,230,0.75);
+
+  box-shadow:
+    0 0 10px rgba(77,216,230,0.15),
+    inset 0 0 8px rgba(77,216,230,0.04);
+}
+
+
+/* ============================================================================
+   STATUS BADGE
+   ============================================================================ */
+
+.status-badge {
+  font-size: 8px;
+  padding: 3px 6px;
+
+  letter-spacing: 0.06em;
+
+  box-shadow:
+    0 0 5px rgba(255,184,48,0.08);
+}
+
+
+/* ============================================================================
+   MAKE RIGHT SIDE MORE COMPACT
+   ============================================================================ */
+
+.control-pane > .title-block {
+  margin-bottom: 2px;
+  padding-bottom: 6px;
+}
+
+.control-pane > .title-block h1 {
+  font-size: 13px;
+}
+
+
+/* ============================================================================
+   SMALL SCREEN ADJUSTMENT
+   ============================================================================ */
+
+@media (max-width: 900px) {
+
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .control-pane {
+    max-height: none;
+  }
+
+  .preset-btn {
+    font-size: 8px;
+  }
+}
+
+
+/* ============================================================================
+   REFERENCE MATCH — RIGHT HUD COLUMN
+   Makes the desktop composition match the compact reference proportions:
+   ~70% tactical view / ~30% HUD controls.
+   ============================================================================ */
+
+@media (min-width: 901px) {
+  /* Desktop GUI only: keep the complete HUD inside one viewport. */
+  .app {
+    grid-template-columns: 46.5% 53.5%;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .radar-pane {
+    min-width: 0;
+    height: 100vh;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .radar-canvas-wrap {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  canvas#radar {
+    width: min(68vh, 100%);
+    height: min(68vh, 100%);
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  /* The existing HUD cards are arranged into two compact columns.
+     No markup or JavaScript is changed. */
+  .control-pane {
+    box-sizing: border-box;
+    height: 100vh;
+    min-height: 0;
+    padding: 8px 8px 8px 6px;
+    gap: 8px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1.08fr;
+    grid-template-rows: 28px 160px 160px 55px 155px 160px;
+    grid-template-areas:
+      "title title"
+      "environment radar"
+      "environment thermal"
+      "banner trajectories"
+      "gimbal trajectories"
+      "gimbal neutralization";
+    align-content: start;
+  }
+
+  .control-pane > .title-block {
+    grid-area: title;
+    margin: 0;
+    padding: 0 0 5px;
+    min-height: 0;
+  }
+
+  .control-pane > .title-block h1 {
+    font-size: 12px;
+  }
+
+  .control-pane > .panel,
+  .control-pane > .improvement-banner {
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  /* Existing child order: title, environment, banner, gimbal, radar, thermal,
+     trajectories, neutralization. */
+  .control-pane > .panel:nth-child(2) {
+    grid-area: environment;
+    overflow: hidden;
+  }
+
+  .control-pane > .improvement-banner:nth-child(3) {
+    grid-area: banner;
+    min-height: 0;
+    padding: 6px 8px;
+  }
+
+  .control-pane > .panel:nth-child(4) {
+    grid-area: gimbal;
+    overflow: hidden;
+    min-height: 0;
+    align-self: stretch;
+  }
+
+  .control-pane > .panel:nth-child(5) {
+    grid-area: radar;
+    overflow: hidden;
+    height: 72px;
+    align-self: start;
+  }
+
+  .control-pane > .panel:nth-child(6) {
+    grid-area: thermal;
+    overflow: hidden;
+    height: 72px;
+    align-self: start;
+    transform: translateY(-88px);
+  }
+
+  .control-pane > .trajectory-panel:nth-child(7) {
+    grid-area: trajectories;
+    overflow: hidden;
+    min-height: 0;
+    height: 270px;
+    align-self: start;
+    transform: translateY(-176px);
+  }
+
+  .control-pane > .panel:nth-child(8) {
+    grid-area: neutralization;
+    overflow: hidden;
+    min-height: 0;
+    height: 175px;
+    align-self: start;
+    transform: translateY(-124px);
+  }
+
+  .panel {
+    padding: 10px 10px;
+    border-radius: 4px;
+  }
+
+  .panel-label {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .preset-row {
+    gap: 5px;
+    margin-bottom: 8px !important;
+  }
+
+  .preset-btn {
+    height: 26px;
+    font-size: 8px;
+    padding: 0 4px;
+  }
+
+  .slider-row {
+    margin-bottom: 8px;
+  }
+
+  .slider-row label {
+    font-size: 9px;
+    margin-bottom: 5px;
+  }
+
+  .slider-row label span.val {
+    font-size: 9px;
+  }
+
+  .slider-row input[type="range"] {
+    height: 4px;
+  }
+
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+  }
+
+  .slider-row input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+  }
+
+  .improvement-banner .big {
+    font-size: 19px;
+    line-height: 20px;
+  }
+
+  .improvement-banner .lbl {
+    font-size: 7px;
+  }
+
+  .telemetry-row {
+    margin-bottom: 6px;
+    font-size: 10px;
+  }
+
+  .telemetry-row .num {
+    font-size: 11px;
+  }
+
+  .chart-wrap {
+    height: 68px;
+    margin-top: 6px;
+  }
+
+  .chart-wrap canvas {
+    height: 66px !important;
+  }
+
+  .toggle-row {
+    gap: 4px;
+    font-size: 8px;
+  }
+
+  .toggle-row input {
+    width: 12px;
+    height: 12px;
+  }
+
+  .trajectory-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: calc(100% - 48px);
+    min-height: 0;
+    gap: 5px;
+  }
+
+  .trajectory-meta {
+    margin-top: 5px;
+    font-size: 8px;
+  }
+
+  .status-badge {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+
+  .reset-btn {
+    height: 27px;
+    margin-top: 4px;
+    font-size: 9px;
+    padding: 0 5px;
+  }
+}
+
+
+/* Moving-target / trajectory telemetry */
+.trajectory-panel {
+  padding-bottom: 8px;
+}
+
+.trajectory-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  height: 190px;
+}
+
+.trajectory-card {
+  border: 1px solid rgba(77,216,230,0.16);
+  border-radius: 3px;
+  background: rgba(5,15,24,0.38);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.trajectory-card-header {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  box-sizing: border-box;
+  color: var(--text-dim);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(77,216,230,0.10);
+}
+
+.trajectory-card-header b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.trajectory-card canvas {
+  width: 100%;
+  height: calc(100% - 22px);
+  display: block;
+}
+
+.trajectory-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--text-dim);
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+}
+
+.trajectory-meta b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.trajectory-meta b.good {
+  color: var(--green);
+}
+
+.trajectory-meta b.warn {
+  color: var(--amber);
+}
+
+.trajectory-meta b.crit {
+  color: var(--red);
+}
+
+/* Extra environmental parameters from the physics model — same compact HUD treatment */
+#snowSlider::-webkit-slider-runnable-track, #visibilitySlider::-webkit-slider-runnable-track, #latencySlider::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, rgba(77,216,230,0.55), rgba(77,216,230,0.10));
+}
+#snowSlider::-moz-range-track, #visibilitySlider::-moz-range-track, #latencySlider::-moz-range-track {
+  background: linear-gradient(90deg, rgba(77,216,230,0.55), rgba(77,216,230,0.10));
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="radar-pane">
+    <div class="title-block">
+      <h1>ANTI-DRONE TACTICAL VIEW</h1>
+      <div class="sub">LIVE MOTION + GIMBAL TRACK + SIMULATED ENGAGEMENT</div>
+    </div>
+    <div class="radar-canvas-wrap">
+      <canvas id="radar" width="640" height="640"></canvas>
+    </div>
+    <div class="legend">
+      <span class="l-uncomp">Standard PID (uncompensated)</span>
+      <span class="l-comp">Adaptive compensated</span>
+    </div>
+    <div class="legend" style="margin-top:2px;">
+      <span class="l-active">Active target</span>
+      <span class="l-oor">Out of jam range</span>
+      <span class="l-dead">Neutralized</span>
+    </div>
+  </div>
+
+ <div class="control-pane">
+    <div class="title-block">
+      <h1>ENVIRONMENTAL CONTROLS</h1>
+    </div>
+
+    <!-- CARD 1: SCENARIO & ENVIRONMENT COMBINED -->
+    <div class="panel">
+      <div class="panel-label"><span>SCENARIO & ENVIRONMENT</span></div>
+      <div class="preset-row" style="margin-bottom: 12px;">
+        <button class="preset-btn sea" data-t="20" data-w="10" data-a="0">SEA LEVEL</button>
+        <button class="preset-btn winter" data-t="-10" data-w="30" data-a="2000">WINTER</button>
+        <button class="preset-btn extreme" data-t="-40" data-w="70" data-a="5500">HIMALAYAN</button>
+      </div>
+      <div class="slider-row">
+        <label>TEMPERATURE <span class="val" id="tempVal">-30°C</span></label>
+        <input type="range" id="tempSlider" min="-40" max="20" value="-30" step="1">
+      </div>
+      <div class="slider-row">
+        <label>WIND SPEED <span class="val" id="windVal">40 km/h</span></label>
+        <input type="range" id="windSlider" min="0" max="72" value="40" step="1">
+      </div>
+      <div class="slider-row">
+        <label>ALTITUDE <span class="val" id="altVal">5000 m</span></label>
+        <input type="range" id="altSlider" min="0" max="12000" value="5000" step="100">
+      </div>
+      <div class="slider-row">
+        <label>SNOW / CLUTTER <span class="val" id="snowVal">0.30</span></label>
+        <input type="range" id="snowSlider" min="0" max="1" value="0.30" step="0.01">
+      </div>
+      <div class="slider-row">
+        <label>VISIBILITY FACTOR <span class="val" id="visibilityVal">0.80</span></label>
+        <input type="range" id="visibilitySlider" min="0" max="1" value="0.80" step="0.01">
+      </div>
+      <div class="slider-row">
+        <label>CAMERA LATENCY <span class="val" id="latencyVal">50 ms</span></label>
+        <input type="range" id="latencySlider" min="20" max="100" value="50" step="1">
+      </div>
+    </div>
+
+    <!-- IMPROVEMENT BANNER -->
+    <div class="improvement-banner">
+      <div class="big" id="improvementBig">—</div>
+      <div class="lbl">TRACKING ERROR REDUCTION FROM ADAPTIVE CONTROL</div>
+    </div>
+
+    <!-- CARD 2: GIMBAL SUBSYSTEM -->
+    <div class="panel">
+      <div class="panel-label">
+        <span>GIMBAL SUBSYSTEM</span>
+        <label class="toggle-row"><input type="checkbox" id="baselineToggle" checked> SHOW BASELINE</label>
+      </div>
+      <div class="telemetry-row"><span>Gimbal friction factor</span><span class="num" id="frictionNum">—</span></div>
+      <div class="telemetry-row"><span>Available motor torque</span><span class="num" id="torqueNum">—</span></div>
+      <div class="telemetry-row"><span>Air density ratio</span><span class="num" id="densityNum">—</span></div>
+      <div class="telemetry-row"><span>Target range</span><span class="num" id="targetRangeNum">—</span></div>
+      <div class="telemetry-row"><span>Gimbal vector</span><span class="num good" id="gimbalVectorNum">—</span></div>
+      <div class="telemetry-row"><span>Target bearing</span><span class="num" id="targetBearingNum">—</span></div>
+      <div class="telemetry-row"><span>Vector → target range</span><span class="num" id="vectorRangeNum">—</span></div>
+      <div class="telemetry-row"><span>Live tracking error</span><span class="num good" id="rmsNum">—</span></div>
+      <div class="chart-wrap"><canvas id="errChart" width="380" height="110"></canvas></div>
+    </div>
+
+    <!-- CARD 3: RADAR SUBSYSTEM -->
+    <div class="panel">
+      <div class="panel-label"><span>RADAR SUBSYSTEM </span></div>
+      <div class="telemetry-row"><span>Detection probability (model)</span><span class="num good" id="radarPdNum">—</span></div>
+    </div>
+
+    <!-- CARD 4: THERMAL CAMERA -->
+    <div class="panel">
+      <div class="panel-label"><span>THERMAL CAMERA </span></div>
+      <div class="telemetry-row"><span>Detection confidence (model)</span><span class="num good" id="cameraConfNum">—</span></div>
+    </div>
+
+    <!-- CARD 3: TRACKED DRONE TRAJECTORIES -->
+<div class="panel trajectory-panel">
+  <div class="panel-label">
+    <span>TRACKED DRONE TRAJECTORIES</span>
+    <span id="trajectoryTarget" style="color:var(--text-dim);">SEARCHING</span>
+  </div>
+
+  <div class="trajectory-grid" id="trajectoryGrid"></div>
+
+  <div class="trajectory-meta">
+    <span>SAVED PATHS <b id="trajectoryPoints">0/4</b></span>
+    <span>RANGE <b id="trajectoryRange">—</b></span>
+    <span>STATE <b id="trajectoryState">SEARCHING</b></span>
+  </div>
+</div>
+
+    <!-- CARD 6: NEUTRALIZATION ZONE -->
+    <div class="panel">
+      <div class="panel-label"><span>NEUTRALIZATION ZONE</span></div>
+      <div class="telemetry-row"><span>Jammer transmit power</span><span class="num" id="txPowerNum">—</span></div>
+      <div class="telemetry-row"><span>Effective jamming range</span><span class="num warn" id="rangeNum">—</span></div>
+      <div class="telemetry-row"><span>Drones neutralized</span><span class="num good" id="dronesNum">—</span></div>
+      <div class="telemetry-row"><span>Currently tracking</span><span class="num" id="trackingNum">—</span></div>
+      <div class="telemetry-row"><span>Status</span><span class="status-badge degraded" id="statusBadge">DEGRADED</span></div>
+      <button class="reset-btn" id="resetBtn">↺ RESET TARGETS</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================================
+// REPRODUCIBILITY: seeded random number generator so wind turbulence looks
+// the same pattern every time — matches np.random.seed(42) in the Python
+// scripts, so live demo, backup video, and PPT plots never disagree.
+// ============================================================================
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+let seededRandom = mulberry32(42); // let so presets can reset it
+
+// ============================================================================
+// PHYSICS — ported from our Python simulations, driven by sliders
+// ============================================================================
+// Source-derived subsystem values (datasheet.docx)
+const RADAR_FREQ_GHZ_MIN = 60, RADAR_FREQ_GHZ_MAX = 64;
+const RADAR_TX_CHANNELS = 3, RADAR_RX_CHANNELS = 4;
+const RADAR_TX_POWER_DBM = 12, RADAR_RX_NF_DB = 12, RADAR_ADC_MSPS = 25;
+const RADAR_UPDATE_MIN_HZ = 10, RADAR_UPDATE_MAX_HZ = 30;
+const CAMERA_WIDTH = 640, CAMERA_HEIGHT = 512;
+const CAMERA_SPECTRAL_MIN_UM = 8, CAMERA_SPECTRAL_MAX_UM = 14;
+const CAMERA_SENSITIVITY_MK = 20;
+const CAMERA_FRAME_MIN_HZ = 30, CAMERA_FRAME_MAX_HZ = 60;
+
+// Simulation parameters from the supplied gimbal ranges in the reference PDF.
+// Friction is kept at 1.0 normal -> 2.0 severe cold, as specified in the
+// document; encoder resolution is 0.05° within the 0.01–0.1° range; the
+// controller runs at the lower 50 Hz end of the 50–200 Hz design range.
+const FRICTION_FACTOR_NORMAL = 1.0, FRICTION_FACTOR_COLD = 2.0;
+const CABLE_FACTOR_NORMAL = 1.0, CABLE_FACTOR_COLD = 2.0;
+const ENCODER_RESOLUTION_DEG = 0.05;
+const GIMBAL_NORMAL_ERROR_DEG = 0.5;
+const GIMBAL_SEVERE_ERROR_DEG = 3.0;
+const CONTROL_RATE_HZ = 50;
+
+// Legacy scenario-level power model retained from the original dashboard.
+const TORQUE_NORMAL = 1.00;
+// Adaptive system uses thermal management (heaters + insulated housing, per PS)
+// to partially recover battery/motor performance. Cold torque capacity:
+//   TORQUE_COLD_BASELINE = 55% (uncompensated, no thermal mgmt)
+//   TORQUE_COLD_ADAPTIVE = 85% (with active thermal management)
+const TORQUE_COLD = 0.55;          // baseline uncompensated
+const TORQUE_COLD_ADAPTIVE = 0.85; // adaptive with thermal management
+const TX_POWER_NORMAL_W = 10.0;
+const FREQ_MHZ = 2450.0;
+const JAM_THRESHOLD_DBM = -80.0;
+
+function coldness(tempC) {
+  return Math.min(1, Math.max(0, (20 - tempC) / 60));
+}
+function frictionFactorAt(tempC) {
+  const c = coldness(tempC);
+  return FRICTION_FACTOR_NORMAL + (FRICTION_FACTOR_COLD - FRICTION_FACTOR_NORMAL) * c;
+}
+
+// --- ALTITUDE PHYSICS -------------------------------------------------------
+function airDensityRatio(altM) {
+  const calibratedScaleHeight = -5000 / Math.log(0.60);
+  return Math.exp(-altM / calibratedScaleHeight);
+}
+function pressureRatio(altM) {
+  const calibratedScaleHeight = -5000 / Math.log(0.53);
+  return Math.exp(-altM / calibratedScaleHeight);
+}
+function pressureDeratingFactor(altM) {
+  const p = pressureRatio(altM);
+  return Math.max(0.85, 1 - 0.30 * (1 - p));
+}
+function maxTorqueAt(tempC, altM, isAdaptive=false) {
+  const c = coldness(tempC);
+  const coldCap = isAdaptive ? TORQUE_COLD_ADAPTIVE : TORQUE_COLD;
+  const tempDerated = TORQUE_NORMAL - (TORQUE_NORMAL - coldCap) * c;
+  return tempDerated * pressureDeratingFactor(altM);
+}
+function cableFactorAt(tempC) {
+  const c = coldness(tempC);
+  return CABLE_FACTOR_NORMAL + (CABLE_FACTOR_COLD - CABLE_FACTOR_NORMAL) * c;
+}
+
+// --- RADAR / CAMERA SIMULATION ---------------------------------------------
+function radarDetectionProbability(tempC, snow, visibility) {
+  const coldPenalty = 0.12 * coldness(tempC);
+  const clutterPenalty = 0.14 * snow;
+  const visibilityPenalty = 0.10 * (1 - visibility);
+  return Math.max(0.70, Math.min(0.99, 0.99 - coldPenalty - clutterPenalty - visibilityPenalty));
+}
+function radarRangeErrorScenario(snow) { return 1 + 4 * snow; }
+function radarAngleErrorScenario(snow) { return 0.5 + 1.5 * snow; }
+function cameraLocalizationError(tempC, frost, visibility, latencyMs) {
+  const normalized = 0.45 * frost + 0.35 * (1 - visibility) + 0.20 * ((latencyMs - 20) / 80);
+  return Math.max(0, Math.min(5, 5 * normalized));
+}
+function cameraConfidence(tempC, frost, visibility, latencyMs) {
+  const penalty = 0.15 * coldness(tempC) + 0.35 * frost + 0.35 * (1 - visibility) + 0.15 * ((latencyMs - 20) / 80);
+  return Math.max(0, Math.min(1, 1 - penalty));
+}
+
+function txPowerAt(tempC, altM) {
+  return TX_POWER_NORMAL_W * (maxTorqueAt(tempC, altM, true) / TORQUE_NORMAL);
+}
+function wattsToDbm(w) { return 10 * Math.log10(w * 1000); }
+function fsplDb(distKm, freqMhz) {
+  distKm = Math.max(distKm, 0.001);
+  return 20 * Math.log10(distKm) + 20 * Math.log10(freqMhz) + 32.44;
+}
+function receivedDbm(txW, distKm) { return wattsToDbm(txW) - fsplDb(distKm, FREQ_MHZ); }
+function maxEffectiveRangeKm(txW) {
+  let lo = 0.01, hi = 20;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (receivedDbm(txW, mid) >= JAM_THRESHOLD_DBM) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+
+// Moving targets are deliberately a deterministic kinematic demo layer.
+// The PDF specifies gimbal/radar/camera ranges, but it does not specify a
+// drone flight-speed model, so these velocities are not presented as
+// datasheet values.
+const INITIAL_DRONES = [
+  { id: 'D1', x: 2.6, y: 1.1, vx: 0.18, vy: 0.05, phase: 0.0, type: 'cross', status: null },
+  { id: 'D2', x: 4.8, y: -3.2, vx: -0.08, vy: 0.16, phase: 1.4, type: 'arc', status: null },
+  { id: 'D3', x: -6.4, y: 4.2, vx: 0.16, vy: -0.12, phase: 2.2, type: 'cross', status: null },
+  { id: 'D4', x: -8.5, y: -4.8, vx: 0.20, vy: 0.09, phase: 3.1, type: 'arc', status: null },
+  { id: 'D5', x: 11.5, y: 4.5, vx: -0.15, vy: -0.08, phase: 4.0, type: 'cross', status: null }
+];
+let drones = INITIAL_DRONES.map(d => ({ ...d }));
+
+// ============================================================================
+// MOVING-TARGET GIMBAL SIM
+// ============================================================================
+const inertia = 0.02;
+const dt = 1 / CONTROL_RATE_HZ;
+let simTime = 0;
+
+const adaptive = { angle: 0, vel: 0, bias: 0, integral: 0, prevError: 0, estBias: 0 };
+const baseline = { angle: 0, vel: 0, bias: 0, integral: 0, prevError: 0, estBias: 0 };
+const errHistoryAdaptive = [];
+const errHistoryBaseline = [];
+const MAX_HISTORY = 150;
+
+const REQUIRED_HOVER_TIME = 1.0;
+let hoverTimer = 0;
+let scanAngle = 0;
+let _currentRangeKm = 8;
+let currentTrackedId = null;
+let gimbalAcquired = false;
+
+// A small circular-angle Kalman-style filter, matching the PDF's stated
+// "Kalman filter" tracking choice. It smooths the measured bearing without
+// changing the underlying target motion.
+const bearingFilter = { angle: 0, rate: 0, variance: 0.02, initialized: false };
+function resetBearingFilter(angle = 0) {
+  bearingFilter.angle = angle;
+  bearingFilter.rate = 0;
+  bearingFilter.variance = 0.02;
+  bearingFilter.initialized = false;
+}
+function wrapAngle(a) {
+  return Math.atan2(Math.sin(a), Math.cos(a));
+}
+function bearingOf(d) { return Math.atan2(d.y, d.x); }
+function rangeOf(d) { return Math.hypot(d.x, d.y); }
+function deg(rad) { return rad * 180 / Math.PI; }
+function bearingRateOf(d) {
+  const r2 = Math.max(1e-6, d.x * d.x + d.y * d.y);
+  return (d.x * d.vy - d.y * d.vx) / r2;
+}
+function quantizeEncoder(rad) {
+  const q = ENCODER_RESOLUTION_DEG * Math.PI / 180;
+  return Math.round(rad / q) * q;
+}
+
+function updateDroneMotion() {
+  drones.forEach(d => {
+    if (d.status === 'DEACTIVATED') return;
+    const lateral = 0.035 * Math.sin(0.55 * simTime + d.phase);
+    if (d.type === 'arc') {
+      d.x += (d.vx - lateral * 0.7) * dt;
+      d.y += (d.vy + lateral) * dt;
+    } else {
+      d.x += (d.vx + lateral) * dt;
+      d.y += (d.vy - lateral * 0.5) * dt;
+    }
+
+    // Keep the visual targets inside the 20 km tactical display.
+    const r = rangeOf(d);
+    if (r > 19.2) {
+      const nx = d.x / r, ny = d.y / r;
+      const outward = d.vx * nx + d.vy * ny;
+      d.vx -= 2 * outward * nx;
+      d.vy -= 2 * outward * ny;
+      d.x = nx * 19.2;
+      d.y = ny * 19.2;
+    }
+  });
+}
+
+function updateDroneStatuses(rangeKm) {
+  drones.forEach(d => {
+    if (d.status === 'DEACTIVATED') return;
+    d.status = rangeOf(d) <= rangeKm ? 'ACTIVE' : 'OUT_OF_RANGE';
+  });
+}
+
+function chooseNearestActive() {
+  const active = drones.filter(d => d.status === 'ACTIVE');
+  if (!active.length) return null;
+  active.sort((a, b) => rangeOf(a) - rangeOf(b));
+  return active[0];
+}
+
+// Keep one target locked until it is neutralized or leaves the modeled range.
+// This fixes the main failure in the earlier moving-target demo: the target
+// selector was re-sorting every frame, so the 1 s dwell timer kept resetting.
+function getLockedTarget() {
+  if (currentTrackedId) {
+    const locked = drones.find(d => d.id === currentTrackedId);
+    if (locked && locked.status === 'ACTIVE') return locked;
+    if (locked && hoverTimer > 0 && locked.status !== 'DEACTIVATED') return locked;
+    currentTrackedId = null;
+    hoverTimer = 0;
+  }
+  const next = chooseNearestActive();
+  if (next) {
+    currentTrackedId = next.id;
+    const acquiredBearing = bearingOf(next);
+    resetBearingFilter(acquiredBearing);
+
+    // Snap gimbal to acquired target bearing on EVERY new acquisition.
+    // Without this, when a second/third target is acquired the gimbal starts
+    // pointing at the previous target's bearing — tracking error is huge,
+    // wellTracked is never true, and hoverTimer never accumulates.
+    adaptive.angle = acquiredBearing;
+    baseline.angle = acquiredBearing;
+    adaptive.vel = baseline.vel = 0;
+    adaptive.integral = baseline.integral = 0;
+    adaptive.prevError = baseline.prevError = 0;
+    adaptive.estBias = baseline.estBias = 0;
+    gimbalAcquired = true;
+  }
+  return next;
+}
+
+function resetTargets() {
+  drones = INITIAL_DRONES.map(d => ({ ...d, status: null }));
+  hoverTimer = 0;
+  currentTrackedId = null;
+  gimbalAcquired = false;
+  trajectoryHistory.length = 0;
+  savedTrajectories.length = 0;
+  trajectoryTargetId = null;
+  simTime = 0;
+  adaptive.angle = 0; adaptive.vel = 0; adaptive.bias = 0; adaptive.integral = 0; adaptive.prevError = 0; adaptive.estBias = 0;
+  baseline.angle = 0; baseline.vel = 0; baseline.bias = 0; baseline.integral = 0; baseline.prevError = 0; baseline.estBias = 0;
+  errHistoryAdaptive.length = 0;
+  errHistoryBaseline.length = 0;
+  resetBearingFilter(0);
+}
+
+function filterBearing(target, tempC, snow, visibility, latencyMs) {
+  const trueBearing = bearingOf(target);
+  // Measurement spread follows the document's radar ±0.5/±1/±2° scenario
+  // range, while the camera model contributes a smaller localization term.
+  const radarErrDeg = radarAngleErrorScenario(snow);
+  const cameraErrDeg = cameraLocalizationError(tempC, snow, visibility, latencyMs);
+  const sigma = Math.max(0.05, 0.45 * radarErrDeg + 0.15 * cameraErrDeg);
+
+  // Deterministic bounded measurement noise for repeatable screenshots/video.
+  const noise = (seededRandom() - 0.5) * 2 * sigma * Math.PI / 180;
+  const measurement = wrapAngle(trueBearing + noise);
+
+  if (!bearingFilter.initialized) {
+    bearingFilter.angle = measurement;
+    bearingFilter.rate = bearingRateOf(target);
+    bearingFilter.variance = (sigma * Math.PI / 180) ** 2;
+    bearingFilter.initialized = true;
+    return quantizeEncoder(bearingFilter.angle);
+  }
+
+  // Predict.
+  bearingFilter.angle = wrapAngle(bearingFilter.angle + bearingFilter.rate * dt);
+  bearingFilter.variance += 0.0008;
+
+  // Correct.
+  const measurementVar = Math.max(1e-5, (sigma * Math.PI / 180) ** 2);
+  const gain = bearingFilter.variance / (bearingFilter.variance + measurementVar);
+  const innovation = wrapAngle(measurement - bearingFilter.angle);
+  const previous = bearingFilter.angle;
+  bearingFilter.angle = wrapAngle(bearingFilter.angle + gain * innovation);
+  bearingFilter.rate = 0.85 * bearingFilter.rate + 0.15 * wrapAngle(bearingFilter.angle - previous) / dt;
+  bearingFilter.variance = (1 - gain) * bearingFilter.variance;
+
+  return quantizeEncoder(bearingFilter.angle);
+}
+
+function stepAxis(state, tempC, windKmh, altM, isAdaptive, targetAng, targetRate) {
+  const friction = 0.05 * frictionFactorAt(tempC);
+  const maxT = maxTorqueAt(tempC, altM, isAdaptive);
+  const densityRatio = airDensityRatio(altM);
+
+  // PDF wind range is 0–20 m/s. The GUI remains in km/h, so convert and clamp.
+  const windMs = Math.min(20, Math.max(0, windKmh / 3.6));
+  const windAmplitude = 0.12 * (windMs / 20) * densityRatio;
+  const cableStiff = 0.15 * cableFactorAt(tempC);
+
+  const measured = state.angle + state.bias;
+  const error = wrapAngle(targetAng - measured);
+
+  let kp, ki, kd, correctedError;
+  if (isAdaptive) {
+    // Adaptive path: faster acquisition, target-rate feed-forward and
+    // disturbance cancellation. The environmental derating above still
+    // limits the available torque.
+    kp = 50.0;  // boosted: critically-damped response for moving targets
+    ki = 0.20;
+    kd = 2.00;  // critically damped: 2*sqrt(kp*inertia) = 2*sqrt(50*0.02) = 2.0
+    state.estBias += 0.025 * error * dt;
+    correctedError = error - state.estBias;
+  } else {
+    // Baseline path: intentionally slower response for comparison.
+    kp = 6.0;
+    ki = 0.08;
+    kd = 0.55;
+    correctedError = error;
+  }
+
+  state.integral += correctedError * dt;
+  state.integral = Math.max(-0.5, Math.min(0.5, state.integral));
+  const derivative = (correctedError - state.prevError) / dt;
+  state.prevError = correctedError;
+
+  const windTorque = windAmplitude * Math.sin(2 * simTime) + windAmplitude * 0.4 * (seededRandom() - 0.5);
+  const cableTorque = cableStiff * state.angle;
+  const disturbance = windTorque + cableTorque;
+
+  // Adaptive control adds target-rate feed-forward and disturbance cancellation.
+  let motorTorque = kp * correctedError + ki * state.integral + kd * (targetRate - state.vel);
+  if (isAdaptive) motorTorque += disturbance;
+  motorTorque = Math.max(-maxT, Math.min(maxT, motorTorque));
+
+  const netTorque = motorTorque - friction * state.vel - disturbance;
+  const angularAccel = netTorque / inertia;
+  state.vel += angularAccel * dt;
+  state.angle = wrapAngle(state.angle + state.vel * dt);
+  state.bias += 0.002 * dt * Math.sin(0.1 * simTime) * coldness(tempC);
+
+  const trackingErrorDeg = Math.abs(wrapAngle(targetAng - state.angle) * 180 / Math.PI);
+  return { target: targetAng, actual: state.angle, trackingErrorDeg };
+}
+
+function stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs) {
+  _currentRangeKm = rangeKm;
+  updateDroneMotion();
+  updateDroneStatuses(rangeKm);
+  const currentTarget = getLockedTarget();
+
+  const targetAng = currentTarget ? filterBearing(currentTarget, tempC, snow, visibility, latencyMs) : adaptive.angle;
+  const targetRate = currentTarget ? bearingRateOf(currentTarget) : 0;
+
+  const rAdaptive = stepAxis(adaptive, tempC, windKmh, altM, true, targetAng, targetRate);
+  const rBaseline = stepAxis(baseline, tempC, windKmh, altM, false, targetAng, targetRate);
+  simTime += dt;
+
+  errHistoryAdaptive.push(rAdaptive.trackingErrorDeg);
+  errHistoryBaseline.push(rBaseline.trackingErrorDeg);
+  if (errHistoryAdaptive.length > MAX_HISTORY) errHistoryAdaptive.shift();
+  if (errHistoryBaseline.length > MAX_HISTORY) errHistoryBaseline.shift();
+
+  // Visual-only simulated engagement state. The source document defines
+  // 0.5° normal and up to 3° severe pointing error; we use the upper 3°
+  // boundary as the lock criterion and require a continuous 1 s dwell.
+  if (currentTarget) {
+    const wellTracked = rAdaptive.trackingErrorDeg <= GIMBAL_SEVERE_ERROR_DEG;
+    if (wellTracked) {
+      hoverTimer += dt;
+      if (hoverTimer >= REQUIRED_HOVER_TIME) {
+        currentTarget.status = 'DEACTIVATED';
+        currentTarget.engagedAt = simTime;
+        currentTrackedId = null;
+        hoverTimer = 0;
+        resetBearingFilter(adaptive.angle);
+      }
+    } else {
+      hoverTimer = Math.max(0, hoverTimer - dt);
+    }
+  }
+
+  return {
+    target: rAdaptive.target,
+    actualAdaptive: rAdaptive.actual,
+    actualBaseline: rBaseline.actual,
+    errAdaptive: rAdaptive.trackingErrorDeg,
+    errBaseline: rBaseline.trackingErrorDeg,
+    currentTarget,
+    hoverTimer
+  };
+}
+
+// ============================================================================
+// DRAWING — radar / tactical view
+// ============================================================================
+// ============================================================================
+// DRAWING — radar / tactical view
+// ============================================================================
+const radarCanvas = document.getElementById('radar');
+const rctx = radarCanvas.getContext('2d');
+const R = 300;
+const CENTER = { x: 320, y: 320 };
+const KM_TO_PX = R / 20;
+function kmToPx(km) { return km * KM_TO_PX; }
+
+function drawRadar(rangeKm, actualAdaptiveAng, actualBaselineAng, showBaseline, currentTarget) {
+  rctx.clearRect(0, 0, 640, 640);
+  rctx.strokeStyle = 'rgba(77,216,230,0.25)';
+  rctx.lineWidth = 1;
+  for (let km = 5; km <= 20; km += 5) {
+    rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,kmToPx(km),0,Math.PI*2); rctx.stroke();
+    rctx.fillStyle='#cfe8f0'; rctx.font='10px monospace'; rctx.fillText(km+' km',CENTER.x+kmToPx(km)+4,CENTER.y-4);
+  }
+  rctx.beginPath();
+  rctx.moveTo(CENTER.x-R,CENTER.y); rctx.lineTo(CENTER.x+R,CENTER.y);
+  rctx.moveTo(CENTER.x,CENTER.y-R); rctx.lineTo(CENTER.x,CENTER.y+R); rctx.stroke();
+
+  const shownRange = Math.min(rangeKm,20);
+  rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,kmToPx(shownRange),0,Math.PI*2);
+  rctx.fillStyle='rgba(92,214,138,0.10)'; rctx.fill();
+  rctx.strokeStyle='#5cd68a'; rctx.lineWidth=1.5; rctx.setLineDash([5,4]); rctx.stroke(); rctx.setLineDash([]);
+
+  drones.forEach(d=>{
+    const dist=rangeOf(d), ang=bearingOf(d), rr=Math.min(dist,20);
+    const px=CENTER.x+Math.cos(ang)*kmToPx(rr), py=CENTER.y+Math.sin(ang)*kmToPx(rr), size=7;
+    if(d.status==='DEACTIVATED'){
+      rctx.strokeStyle='#6f8ca3'; rctx.lineWidth=2; rctx.beginPath();
+      rctx.moveTo(px-size,py-size); rctx.lineTo(px+size,py+size); rctx.moveTo(px+size,py-size); rctx.lineTo(px-size,py+size); rctx.stroke();
+    } else if(d.status==='OUT_OF_RANGE'){
+      rctx.beginPath(); rctx.moveTo(px,py-size); rctx.lineTo(px-size,py+size); rctx.lineTo(px+size,py+size); rctx.closePath(); rctx.fillStyle='#e85c4a'; rctx.fill();
+    } else {
+      rctx.beginPath(); rctx.arc(px,py,size-1,0,Math.PI*2); rctx.fillStyle='#5cd68a'; rctx.fill();
+    }
+    if(currentTarget && d.id===currentTarget.id){
+      rctx.strokeStyle='#4dd8e6'; rctx.lineWidth=1.5; rctx.setLineDash([3,3]); rctx.beginPath(); rctx.arc(px,py,14,0,Math.PI*2); rctx.stroke(); rctx.setLineDash([]);
+    }
+    rctx.font='9px monospace'; rctx.textAlign='center';
+    rctx.fillStyle=d.status==='DEACTIVATED'?'#6f8ca3':d.status==='OUT_OF_RANGE'?'#e85c4a':'#5cd68a';
+    rctx.fillText(`${d.id} ${dist.toFixed(1)}km`,px,py+21); rctx.textAlign='left';
+  });
+
+  const pointLen=kmToPx(currentTarget?Math.min(rangeOf(currentTarget),20):12);
+  if(showBaseline){
+    const bx=CENTER.x+Math.cos(actualBaselineAng)*pointLen, by=CENTER.y+Math.sin(actualBaselineAng)*pointLen;
+    rctx.strokeStyle='#e85c4a'; rctx.lineWidth=1.5; rctx.setLineDash([5,4]); rctx.beginPath(); rctx.moveTo(CENTER.x,CENTER.y); rctx.lineTo(bx,by); rctx.stroke(); rctx.setLineDash([]);
+  }
+  const ax=CENTER.x+Math.cos(actualAdaptiveAng)*pointLen, ay=CENTER.y+Math.sin(actualAdaptiveAng)*pointLen;
+  rctx.strokeStyle='#4dd8e6'; rctx.lineWidth=2.5; rctx.beginPath(); rctx.moveTo(CENTER.x,CENTER.y); rctx.lineTo(ax,ay); rctx.stroke();
+
+  if(currentTarget){
+    const ta=bearingOf(currentTarget), tr=kmToPx(Math.min(rangeOf(currentTarget),20));
+    const tx=CENTER.x+Math.cos(ta)*tr, ty=CENTER.y+Math.sin(ta)*tr;
+    rctx.strokeStyle='rgba(255,184,48,0.90)'; rctx.lineWidth=1.2; rctx.setLineDash([2,3]); rctx.beginPath(); rctx.moveTo(CENTER.x,CENTER.y); rctx.lineTo(tx,ty); rctx.stroke(); rctx.setLineDash([]);
+    rctx.fillStyle='#ffb830'; rctx.font='10px monospace';
+    rctx.fillText(`TARGET ${currentTarget.id}   RANGE ${rangeOf(currentTarget).toFixed(2)} km   BEARING ${deg(ta).toFixed(1)}°`,12,20);
+  }
+  rctx.fillStyle='#4dd8e6'; rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,5,0,Math.PI*2); rctx.fill();
+  rctx.beginPath(); rctx.arc(ax,ay,4,0,Math.PI*2); rctx.fill();
+  rctx.fillStyle='#7893a7'; rctx.font='9px monospace';
+  rctx.fillText(`ADAPTIVE GIMBAL VECTOR  ${deg(actualAdaptiveAng).toFixed(1)}°`,12,37);
+  rctx.fillText(`TRACK RANGE  ${currentTarget ? rangeOf(currentTarget).toFixed(2) : '—'} km   |   RING  ${shownRange.toFixed(2)} km`,12,52);
+}
+
+
+// ============================================================================
+// ERROR CHART — baseline vs adaptive, toggleable
+// ============================================================================
+const errCanvas = document.getElementById('errChart');
+const ectx = errCanvas.getContext('2d');
+function drawErrChart(showBaseline) {
+  ectx.clearRect(0, 0, 380, 90);
+  ectx.fillStyle = '#0f1e2e';
+  ectx.fillRect(0, 0, 380, 90);
+  if (errHistoryAdaptive.length < 2) return;
+
+  const maxErr = Math.max(1, ...errHistoryAdaptive, ...(showBaseline ? errHistoryBaseline : []));
+
+  function plotLine(history, color) {
+    ectx.strokeStyle = color;
+    ectx.lineWidth = 1.5;
+    ectx.beginPath();
+    history.forEach((e, i) => {
+      const x = (i / MAX_HISTORY) * 380;
+      const y = 90 - (e / maxErr) * 80 - 5;
+      if (i === 0) ectx.moveTo(x, y); else ectx.lineTo(x, y);
+    });
+    ectx.stroke();
+  }
+  if (showBaseline) plotLine(errHistoryBaseline, '#e85c4a');
+  plotLine(errHistoryAdaptive, '#5cd68a');
+}
+
+// ============================================================================
+// TRACKED-DRONE TRAJECTORY — compact live history
+// ============================================================================
+
+const trajectoryHistory = [];
+const savedTrajectories = [];
+let trajectoryTargetId = null;
+const MAX_TRAJECTORY_POINTS = 90;
+function drawTrajectoryChart(currentTarget) {
+  // When gimbal locks onto a new drone, save the previous drone trajectory.
+  if (currentTarget && trajectoryTargetId !== currentTarget.id) {
+    if (trajectoryTargetId && trajectoryHistory.length > 0) {
+      savedTrajectories.push({
+        id: trajectoryTargetId,
+        points: trajectoryHistory.slice(),
+        state: 'NEUTRALIZED'
+      });
+    }
+
+    trajectoryHistory.length = 0;
+    trajectoryTargetId = currentTarget.id;
+  }
+
+  if (currentTarget) {
+    trajectoryHistory.push({
+      x: currentTarget.x,
+      y: currentTarget.y
+    });
+
+    if (trajectoryHistory.length > MAX_TRAJECTORY_POINTS) {
+      trajectoryHistory.shift();
+    }
+  }
+
+  const tracks = savedTrajectories.slice();
+
+  if (trajectoryHistory.length > 0 && trajectoryTargetId) {
+    tracks.push({
+      id: trajectoryTargetId,
+      points: trajectoryHistory,
+      state: currentTarget ? currentTarget.status : 'NEUTRALIZED'
+    });
+  }
+
+  const grid = document.getElementById('trajectoryGrid');
+
+  grid.innerHTML = '';
+
+  const maxTracks = Math.min(4, tracks.length);
+
+  for (let i = 0; i < maxTracks; i++) {
+    const track = tracks[i];
+
+    const card = document.createElement('div');
+    card.className = 'trajectory-card';
+
+    const header = document.createElement('div');
+    header.className = 'trajectory-card-header';
+
+    const left = document.createElement('span');
+    left.textContent = `TRACK ${i + 1}/4`;
+
+    const right = document.createElement('b');
+    right.textContent = `${track.id} · ${track.state || 'TRACKING'}`;
+
+    header.appendChild(left);
+    header.appendChild(right);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 260;
+    canvas.height = 90;
+
+    card.appendChild(header);
+    card.appendChild(canvas);
+    grid.appendChild(card);
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0f1e2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = 'rgba(77,216,230,0.10)';
+    ctx.lineWidth = 1;
+
+    for (let x = 20; x < canvas.width; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+
+    for (let y = 10; y < canvas.height; y += 18) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    if (track.points.length > 1) {
+      const maxR = Math.max(
+        12,
+        ...track.points.map(p => Math.hypot(p.x, p.y))
+      );
+
+      const sx = 105 / maxR;
+      const sy = 32 / maxR;
+
+      ctx.strokeStyle = '#4dd8e6';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+
+      track.points.forEach((p, j) => {
+        const px = canvas.width / 2 + p.x * sx;
+        const py = canvas.height / 2 - p.y * sy;
+
+        if (j === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      });
+
+      ctx.stroke();
+
+      const last = track.points[track.points.length - 1];
+
+      ctx.fillStyle = i === maxTracks - 1 && currentTarget
+        ? '#ffb830'
+        : '#5cd68a';
+
+      ctx.beginPath();
+      ctx.arc(
+        canvas.width / 2 + last.x * sx,
+        canvas.height / 2 - last.y * sy,
+        4,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  }
+
+  document.getElementById('trajectoryTarget').textContent =
+    currentTarget ? currentTarget.id : 'SEARCHING';
+
+  document.getElementById('trajectoryPoints').textContent =
+    `${Math.min(4, tracks.length)}/4`;
+
+  document.getElementById('trajectoryRange').textContent =
+    currentTarget
+      ? rangeOf(currentTarget).toFixed(2) + ' km'
+      : '—';
+
+  document.getElementById('trajectoryState').textContent =
+    currentTarget
+      ? currentTarget.status
+      : tracks.length
+        ? 'SEARCHING'
+        : 'SEARCHING';
+}
+// ============================================================================
+// UI WIRING
+// ============================================================================
+const tempSlider = document.getElementById('tempSlider');
+const windSlider = document.getElementById('windSlider');
+const altSlider = document.getElementById('altSlider');
+const snowSlider = document.getElementById('snowSlider');
+const visibilitySlider = document.getElementById('visibilitySlider');
+const latencySlider = document.getElementById('latencySlider');
+const baselineToggle = document.getElementById('baselineToggle');
+
+// Image mapping for scenarios
+const presetImages = {
+  sea: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80',
+  winter: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=1920&q=80',
+  extreme: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=1920&q=80'
+};
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tempSlider.value = btn.dataset.t;
+    windSlider.value = btn.dataset.w;
+    altSlider.value = btn.dataset.a;
+
+    // Switch background dynamically using CSS variable
+    const presetKey = btn.classList.contains('sea') ? 'sea' : btn.classList.contains('winter') ? 'winter' : 'extreme';
+    document.documentElement.style.setProperty('--bg-image', `url('${presetImages[presetKey]}')`);
+
+    // CRITICAL: reset all simulation state when switching presets.
+    // Without this, drones keep their old positions/statuses from the previous
+    // run and the gimbal carries stale PID state — neutralization fails because
+    // drones that were already DEACTIVATED stay that way, and drones that drifted
+    // out of range in the old run start in wrong positions for the new conditions.
+    resetTargets();
+    seededRandom = mulberry32(42); // restart wind pattern from same seed
+
+    updateTelemetry();
+  });
+});
+
+function updateTelemetry() {
+  const tempC = parseFloat(tempSlider.value);
+  const windKmh = parseFloat(windSlider.value);
+  const altM = parseFloat(altSlider.value);
+  const snow = parseFloat(snowSlider.value);
+  const visibility = parseFloat(visibilitySlider.value);
+  const latencyMs = parseFloat(latencySlider.value);
+
+  document.getElementById('tempVal').textContent = tempC + '°C';
+  document.getElementById('windVal').textContent = windKmh + ' km/h';
+  document.getElementById('altVal').textContent = altM + ' m';
+  document.getElementById('snowVal').textContent = snow.toFixed(2);
+  document.getElementById('visibilityVal').textContent = visibility.toFixed(2);
+  document.getElementById('latencyVal').textContent = latencyMs.toFixed(0) + ' ms';
+
+  const fMult = frictionFactorAt(tempC);
+  const maxT = maxTorqueAt(tempC, altM);
+  const density = airDensityRatio(altM);
+  const txW = txPowerAt(tempC, altM);
+  const rangeKm = maxEffectiveRangeKm(txW);
+  const neutralizedCount = drones.filter(d => d.status === "DEACTIVATED").length;
+
+  document.getElementById('frictionNum').textContent = fMult.toFixed(2) + '×';
+  document.getElementById('frictionNum').className =
+  'num ' + (fMult >= 4.0 ? 'crit' : fMult >= 2.5 ? 'warn' : 'good');
+
+  document.getElementById('torqueNum').textContent = (maxT * 100).toFixed(0) + '% capacity';
+  document.getElementById('torqueNum').className = 'num ' + (maxT < 0.6 ? 'crit' : maxT < 0.85 ? 'warn' : 'good');
+
+  document.getElementById('densityNum').textContent = (density * 100).toFixed(0) + '%';
+
+  document.getElementById('radarPdNum').textContent = (radarDetectionProbability(tempC, snow, visibility) * 100).toFixed(1) + '%';
+  
+  
+  
+  document.getElementById('cameraConfNum').textContent = (cameraConfidence(tempC, snow, visibility, latencyMs) * 100).toFixed(1) + '%';
+
+  document.getElementById('txPowerNum').textContent = txW.toFixed(2) + ' W';
+  document.getElementById('rangeNum').textContent = rangeKm.toFixed(2) + ' km';
+  document.getElementById('dronesNum').textContent = neutralizedCount + ' / ' + drones.length;
+
+  const badge = document.getElementById('statusBadge');
+  if (fMult >= 1.75 || maxT < 0.65) {
+    badge.textContent = 'SEVERE DEGRADATION';
+    badge.className = 'status-badge degraded';
+  } else if (fMult >= 1.35 || maxT < 0.9) {
+    badge.textContent = 'DEGRADED';
+    badge.className = 'status-badge degraded';
+  } else {
+    badge.textContent = 'NOMINAL';
+    badge.className = 'status-badge active';
+  }
+
+  return { tempC, windKmh, altM, snow, visibility, latencyMs, rangeKm };
+}
+
+// ============================================================================
+// MAIN LOOP
+// ============================================================================
+function loop() {
+  const { tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs } = updateTelemetry();
+  const showBaseline = baselineToggle.checked;
+  const { actualAdaptive, actualBaseline, errAdaptive, currentTarget } = stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs);
+
+  document.getElementById('rmsNum').textContent = errAdaptive.toFixed(3) + '° error';
+  document.getElementById('trackingNum').textContent = currentTarget ? currentTarget.id : 'none (all clear)';
+  document.getElementById('targetRangeNum').textContent = currentTarget ? rangeOf(currentTarget).toFixed(2) + ' km' : '—';
+  document.getElementById('gimbalVectorNum').textContent = deg(actualAdaptive).toFixed(1) + '°';
+  document.getElementById('targetBearingNum').textContent = currentTarget ? deg(bearingOf(currentTarget)).toFixed(1) + '°' : '—';
+  document.getElementById('vectorRangeNum').textContent = currentTarget ? rangeOf(currentTarget).toFixed(2) + ' km' : '—';
+
+  // Live improvement % over the rolling window (fair rolling-average comparison)
+  if (errHistoryAdaptive.length > 10) {
+    const avgAdaptive = errHistoryAdaptive.reduce((a, b) => a + b, 0) / errHistoryAdaptive.length;
+    const avgBaseline = errHistoryBaseline.reduce((a, b) => a + b, 0) / errHistoryBaseline.length;
+    const improvement = avgBaseline > 0 ? ((avgBaseline - avgAdaptive) / avgBaseline) * 100 : 0;
+    document.getElementById('improvementBig').textContent = improvement.toFixed(1) + '%';
+  }
+
+  drawRadar(rangeKm, actualAdaptive, actualBaseline, showBaseline, currentTarget);
+  drawErrChart(showBaseline);
+  drawTrajectoryChart(currentTarget);
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  resetTargets();
+  seededRandom = mulberry32(42);
+});
+
+loop();
+</script>
+</body>
+</html>
