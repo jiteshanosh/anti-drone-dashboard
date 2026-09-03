@@ -24,7 +24,7 @@ body {
     font-family: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
     font-size: 13px;
     
-    /* Background setup for crisp full-screen images */
+    
     background-color: var(--bg-deep);
     background-image: linear-gradient(rgba(10, 20, 32, 0.82), rgba(10, 20, 32, 0.82)), var(--bg-image);
     background-position: center center;
@@ -35,18 +35,18 @@ body {
 }
 
 .radar-pane, .control-pane {
-  background: transparent; /* Allows main background wallpaper to show seamlessly */
+  background: transparent; 
   padding: 20px;
 }
   .app {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
     gap: 1px;
-    background: transparent; /* Changed from var(--line) */
+    background: transparent; 
     min-height: 100vh;
   }
   .radar-pane {
-    background: transparent; /* Changed from var(--bg-deep) */
+    background: transparent; 
     padding: 20px;
     position: relative;
     display: flex;
@@ -199,7 +199,7 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Specific theme highlights on hover */
+
 .preset-btn.sea:hover { 
   border-color: var(--green); 
   box-shadow: 0 0 10px rgba(92, 214, 138, 0.3); 
@@ -264,32 +264,30 @@ body {
     margin-top: 2px;
   }
 
- /* ============================================================================
-   TELEMETRY NUMBERS & BADGES (MATCHES SCREENSHOT)
-   ============================================================================ */
+
 .num {
   font-family: monospace;
   font-weight: 700;
   font-size: 11px;
   text-align: right;
-  background: transparent !important; /* Removes solid background boxes */
+  background: transparent !important; 
   padding: 0 !important;
   border-radius: 0 !important;
-  color: #ffb830 !important; /* Amber default value color */
+  color: #ffb830 !important; 
 }
 
-/* Specific text color accents to match reference */
+
 .num.good {
-  color: #2ee59d !important; /* Green text for optimal/error stats */
+  color: #2ee59d !important; 
 }
 .num.warn {
-  color: #ffb830 !important; /* Amber text */
+  color: #ffb830 !important; 
 }
 .num.crit {
-  color: #ff5252 !important; /* Red text */
+  color: #ff5252 !important; 
 }
 
-/* Status Badge styling */
+
 .status-badge {
   font-size: 10px;
   font-weight: 700;
@@ -308,16 +306,14 @@ body {
   border: 1px solid rgba(46, 229, 157, 0.4);
 }
 
-/* ============================================================================
-   FIX CHART CANVAS CUTTING OFF / CLIPPING
-   ============================================================================ */
+
 .chart-wrap {
   width: 100%;
   margin-top: 8px;
   background: rgba(5, 14, 24, 0.4);
   border: 1px solid rgba(77, 216, 230, 0.15);
   border-radius: 4px;
-  padding: 0;                   /* Removed padding so lines don't get clipped at edges */
+  padding: 0;                   
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -327,12 +323,7 @@ body {
   width: 100% !important;
   height: 80px !important;
 }
-/* ============================================================================
-   FINAL HUD-STYLE CONTROLS
-   Compact + shiny sliders inspired by the reference simulator
-   ============================================================================ */
 
-/* ---------- ENVIRONMENT PANEL ---------- */
 
 .control-pane {
   gap: 8px;
@@ -349,7 +340,7 @@ body {
 }
 
 
-/* ---------- PANEL HEADINGS ---------- */
+
 
 .panel-label {
   font-size: 10px;
@@ -359,7 +350,7 @@ body {
 }
 
 
-/* ---------- SCENARIO BUTTONS ---------- */
+
 
 .preset-row {
   display: flex;
@@ -407,7 +398,7 @@ body {
 }
 
 
-/* Small glowing line at bottom of button */
+
 
 .preset-btn::after {
   content: '';
@@ -425,7 +416,7 @@ body {
 }
 
 
-/* SEA LEVEL */
+
 
 .preset-btn.sea:hover,
 .preset-btn.sea.active {
@@ -449,7 +440,7 @@ body {
 }
 
 
-/* WINTER */
+
 
 .preset-btn.winter:hover,
 .preset-btn.winter.active {
@@ -473,7 +464,6 @@ body {
 }
 
 
-/* HIMALAYAN */
 
 .preset-btn.extreme:hover,
 .preset-btn.extreme.active {
@@ -497,16 +487,13 @@ body {
 }
 
 
-/* Click feedback */
 
 .preset-btn:active {
   transform: scale(0.98);
 }
 
 
-/* ============================================================================
-   SLIDER ROWS
-   ============================================================================ */
+
 
 .slider-row {
   margin-bottom: 11px;
@@ -535,10 +522,6 @@ body {
   letter-spacing: 0;
 }
 
-
-/* ============================================================================
-   BASE SLIDER
-   ============================================================================ */
 
 .slider-row input[type="range"] {
   -webkit-appearance: none;
@@ -569,8 +552,6 @@ body {
 }
 
 
-/* ---------- CHROME / EDGE TRACK ---------- */
-
 .slider-row input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 5px;
@@ -586,8 +567,6 @@ body {
 }
 
 
-/* ---------- FIREFOX TRACK ---------- */
-
 .slider-row input[type="range"]::-moz-range-track {
   height: 4px;
   border-radius: 5px;
@@ -601,11 +580,6 @@ body {
 
   border: none;
 }
-
-
-/* ============================================================================
-   SHINY SLIDER THUMB
-   ============================================================================ */
 
 .slider-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -651,7 +625,6 @@ body {
 }
 
 
-/* Firefox */
 
 .slider-row input[type="range"]::-moz-range-thumb {
   width: 13px;
@@ -678,11 +651,7 @@ body {
 }
 
 
-/* ============================================================================
-   DIFFERENT SLIDER COLORS
-   ============================================================================ */
 
-/* TEMPERATURE = AMBER */
 
 #tempSlider::-webkit-slider-runnable-track {
   background:
@@ -738,7 +707,7 @@ body {
 }
 
 
-/* WIND = CYAN */
+
 
 #windSlider::-webkit-slider-runnable-track {
   background:
@@ -758,8 +727,6 @@ body {
     );
 }
 
-
-/* ALTITUDE = GREEN */
 
 #altSlider::-webkit-slider-runnable-track {
   background:
@@ -815,10 +782,6 @@ body {
 }
 
 
-/* ============================================================================
-   IMPROVEMENT BANNER — MORE COMPACT
-   ============================================================================ */
-
 .improvement-banner {
   padding: 7px 10px;
   min-height: 55px;
@@ -855,10 +818,6 @@ body {
 }
 
 
-/* ============================================================================
-   TELEMETRY — COMPACT
-   ============================================================================ */
-
 .telemetry-row {
   margin-bottom: 6px;
   font-size: 10px;
@@ -868,10 +827,6 @@ body {
   font-size: 11px;
 }
 
-
-/* ============================================================================
-   ERROR CHART
-   ============================================================================ */
 
 .chart-wrap {
   margin-top: 5px;
@@ -896,10 +851,6 @@ body {
 }
 
 
-/* ============================================================================
-   BASELINE TOGGLE
-   ============================================================================ */
-
 .toggle-row {
   gap: 6px;
   font-size: 9px;
@@ -912,9 +863,6 @@ body {
 }
 
 
-/* ============================================================================
-   RESET BUTTON
-   ============================================================================ */
 
 .reset-btn {
   width: 100%;
@@ -957,9 +905,6 @@ body {
 }
 
 
-/* ============================================================================
-   STATUS BADGE
-   ============================================================================ */
 
 .status-badge {
   font-size: 8px;
@@ -972,10 +917,6 @@ body {
 }
 
 
-/* ============================================================================
-   MAKE RIGHT SIDE MORE COMPACT
-   ============================================================================ */
-
 .control-pane > .title-block {
   margin-bottom: 2px;
   padding-bottom: 6px;
@@ -986,9 +927,6 @@ body {
 }
 
 
-/* ============================================================================
-   SMALL SCREEN ADJUSTMENT
-   ============================================================================ */
 
 @media (max-width: 900px) {
 
@@ -1006,14 +944,9 @@ body {
 }
 
 
-/* ============================================================================
-   REFERENCE MATCH — RIGHT HUD COLUMN
-   Makes the desktop composition match the compact reference proportions:
-   ~70% tactical view / ~30% HUD controls.
-   ============================================================================ */
 
 @media (min-width: 901px) {
-  /* Desktop GUI only: keep the complete HUD inside one viewport. */
+
   .app {
     grid-template-columns: 46.5% 53.5%;
     height: 100vh;
@@ -1040,8 +973,7 @@ body {
     max-height: 100%;
   }
 
-  /* The existing HUD cards are arranged into two compact columns.
-     No markup or JavaScript is changed. */
+  
   .control-pane {
     box-sizing: border-box;
     height: 100vh;
@@ -1080,8 +1012,7 @@ body {
     box-sizing: border-box;
   }
 
-  /* Existing child order: title, environment, banner, gimbal, radar, thermal,
-     trajectories, neutralization. */
+ 
   .control-pane > .panel:nth-child(2) {
     grid-area: environment;
     overflow: hidden;
@@ -1246,7 +1177,7 @@ body {
 }
 
 
-/* Moving-target / trajectory telemetry */
+
 .trajectory-panel {
   padding-bottom: 8px;
 }
@@ -1318,7 +1249,7 @@ body {
   color: var(--red);
 }
 
-/* Extra environmental parameters from the physics model — same compact HUD treatment */
+
 #snowSlider::-webkit-slider-runnable-track, #visibilitySlider::-webkit-slider-runnable-track, #latencySlider::-webkit-slider-runnable-track {
   background: linear-gradient(90deg, rgba(77,216,230,0.55), rgba(77,216,230,0.10));
 }
@@ -1354,7 +1285,7 @@ body {
       <h1>ENVIRONMENTAL CONTROLS</h1>
     </div>
 
-    <!-- CARD 1: SCENARIO & ENVIRONMENT COMBINED -->
+
     <div class="panel">
       <div class="panel-label"><span>SCENARIO & ENVIRONMENT</span></div>
       <div class="preset-row" style="margin-bottom: 12px;">
@@ -1388,13 +1319,13 @@ body {
       </div>
     </div>
 
-    <!-- IMPROVEMENT BANNER -->
+
     <div class="improvement-banner">
       <div class="big" id="improvementBig">—</div>
       <div class="lbl">TRACKING ERROR REDUCTION FROM ADAPTIVE CONTROL</div>
     </div>
 
-    <!-- CARD 2: GIMBAL SUBSYSTEM -->
+
     <div class="panel">
       <div class="panel-label">
         <span>GIMBAL SUBSYSTEM</span>
@@ -1411,19 +1342,17 @@ body {
       <div class="chart-wrap"><canvas id="errChart" width="380" height="110"></canvas></div>
     </div>
 
-    <!-- CARD 3: RADAR SUBSYSTEM -->
     <div class="panel">
       <div class="panel-label"><span>RADAR SUBSYSTEM </span></div>
       <div class="telemetry-row"><span>Detection probability (model)</span><span class="num good" id="radarPdNum">—</span></div>
     </div>
 
-    <!-- CARD 4: THERMAL CAMERA -->
     <div class="panel">
       <div class="panel-label"><span>THERMAL CAMERA </span></div>
       <div class="telemetry-row"><span>Detection confidence (model)</span><span class="num good" id="cameraConfNum">—</span></div>
     </div>
 
-    <!-- CARD 3: TRACKED DRONE TRAJECTORIES -->
+   
 <div class="panel trajectory-panel">
   <div class="panel-label">
     <span>TRACKED DRONE TRAJECTORIES</span>
@@ -1439,7 +1368,6 @@ body {
   </div>
 </div>
 
-    <!-- CARD 6: NEUTRALIZATION ZONE -->
     <div class="panel">
       <div class="panel-label"><span>NEUTRALIZATION ZONE</span></div>
       <div class="telemetry-row"><span>Jammer transmit power</span><span class="num" id="txPowerNum">—</span></div>
@@ -1454,11 +1382,7 @@ body {
 </div>
 
 <script>
-// ============================================================================
-// REPRODUCIBILITY: seeded random number generator so wind turbulence looks
-// the same pattern every time — matches np.random.seed(42) in the Python
-// scripts, so live demo, backup video, and PPT plots never disagree.
-// ============================================================================
+
 function mulberry32(seed) {
   return function () {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
@@ -1467,12 +1391,8 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-let seededRandom = mulberry32(42); // let so presets can reset it
+let seededRandom = mulberry32(42); 
 
-// ============================================================================
-// PHYSICS — ported from our Python simulations, driven by sliders
-// ============================================================================
-// Source-derived subsystem values (datasheet.docx)
 const RADAR_FREQ_GHZ_MIN = 60, RADAR_FREQ_GHZ_MAX = 64;
 const RADAR_TX_CHANNELS = 3, RADAR_RX_CHANNELS = 4;
 const RADAR_TX_POWER_DBM = 12, RADAR_RX_NF_DB = 12, RADAR_ADC_MSPS = 25;
@@ -1482,10 +1402,7 @@ const CAMERA_SPECTRAL_MIN_UM = 8, CAMERA_SPECTRAL_MAX_UM = 14;
 const CAMERA_SENSITIVITY_MK = 20;
 const CAMERA_FRAME_MIN_HZ = 30, CAMERA_FRAME_MAX_HZ = 60;
 
-// Simulation parameters from the supplied gimbal ranges in the reference PDF.
-// Friction is kept at 1.0 normal -> 2.0 severe cold, as specified in the
-// document; encoder resolution is 0.05° within the 0.01–0.1° range; the
-// controller runs at the lower 50 Hz end of the 50–200 Hz design range.
+
 const FRICTION_FACTOR_NORMAL = 1.0, FRICTION_FACTOR_COLD = 2.0;
 const CABLE_FACTOR_NORMAL = 1.0, CABLE_FACTOR_COLD = 2.0;
 const ENCODER_RESOLUTION_DEG = 0.05;
@@ -1493,14 +1410,11 @@ const GIMBAL_NORMAL_ERROR_DEG = 0.5;
 const GIMBAL_SEVERE_ERROR_DEG = 3.0;
 const CONTROL_RATE_HZ = 50;
 
-// Legacy scenario-level power model retained from the original dashboard.
+
 const TORQUE_NORMAL = 1.00;
-// Adaptive system uses thermal management (heaters + insulated housing, per PS)
-// to partially recover battery/motor performance. Cold torque capacity:
-//   TORQUE_COLD_BASELINE = 55% (uncompensated, no thermal mgmt)
-//   TORQUE_COLD_ADAPTIVE = 85% (with active thermal management)
-const TORQUE_COLD = 0.55;          // baseline uncompensated
-const TORQUE_COLD_ADAPTIVE = 0.85; // adaptive with thermal management
+
+const TORQUE_COLD = 0.55;          
+const TORQUE_COLD_ADAPTIVE = 0.85; 
 const TX_POWER_NORMAL_W = 10.0;
 const FREQ_MHZ = 2450.0;
 const JAM_THRESHOLD_DBM = -80.0;
@@ -1513,7 +1427,7 @@ function frictionFactorAt(tempC) {
   return FRICTION_FACTOR_NORMAL + (FRICTION_FACTOR_COLD - FRICTION_FACTOR_NORMAL) * c;
 }
 
-// --- ALTITUDE PHYSICS -------------------------------------------------------
+
 function airDensityRatio(altM) {
   const calibratedScaleHeight = -5000 / Math.log(0.60);
   return Math.exp(-altM / calibratedScaleHeight);
@@ -1537,7 +1451,7 @@ function cableFactorAt(tempC) {
   return CABLE_FACTOR_NORMAL + (CABLE_FACTOR_COLD - CABLE_FACTOR_NORMAL) * c;
 }
 
-// --- RADAR / CAMERA SIMULATION ---------------------------------------------
+
 function radarDetectionProbability(tempC, snow, visibility) {
   const coldPenalty = 0.12 * coldness(tempC);
   const clutterPenalty = 0.14 * snow;
@@ -1573,10 +1487,7 @@ function maxEffectiveRangeKm(txW) {
   return lo;
 }
 
-// Moving targets are deliberately a deterministic kinematic demo layer.
-// The PDF specifies gimbal/radar/camera ranges, but it does not specify a
-// drone flight-speed model, so these velocities are not presented as
-// datasheet values.
+
 const INITIAL_DRONES = [
   { id: 'D1', x: 2.6, y: 1.1, vx: 0.18, vy: 0.05, phase: 0.0, type: 'cross', status: null },
   { id: 'D2', x: 4.8, y: -3.2, vx: -0.08, vy: 0.16, phase: 1.4, type: 'arc', status: null },
@@ -1586,9 +1497,7 @@ const INITIAL_DRONES = [
 ];
 let drones = INITIAL_DRONES.map(d => ({ ...d }));
 
-// ============================================================================
-// MOVING-TARGET GIMBAL SIM
-// ============================================================================
+
 const inertia = 0.02;
 const dt = 1 / CONTROL_RATE_HZ;
 let simTime = 0;
@@ -1606,9 +1515,6 @@ let _currentRangeKm = 8;
 let currentTrackedId = null;
 let gimbalAcquired = false;
 
-// A small circular-angle Kalman-style filter, matching the PDF's stated
-// "Kalman filter" tracking choice. It smooths the measured bearing without
-// changing the underlying target motion.
 const bearingFilter = { angle: 0, rate: 0, variance: 0.02, initialized: false };
 function resetBearingFilter(angle = 0) {
   bearingFilter.angle = angle;
@@ -1643,7 +1549,7 @@ function updateDroneMotion() {
       d.y += (d.vy - lateral * 0.5) * dt;
     }
 
-    // Keep the visual targets inside the 20 km tactical display.
+
     const r = rangeOf(d);
     if (r > 19.2) {
       const nx = d.x / r, ny = d.y / r;
@@ -1670,9 +1576,6 @@ function chooseNearestActive() {
   return active[0];
 }
 
-// Keep one target locked until it is neutralized or leaves the modeled range.
-// This fixes the main failure in the earlier moving-target demo: the target
-// selector was re-sorting every frame, so the 1 s dwell timer kept resetting.
 function getLockedTarget() {
   if (currentTrackedId) {
     const locked = drones.find(d => d.id === currentTrackedId);
@@ -1687,10 +1590,6 @@ function getLockedTarget() {
     const acquiredBearing = bearingOf(next);
     resetBearingFilter(acquiredBearing);
 
-    // Snap gimbal to acquired target bearing on EVERY new acquisition.
-    // Without this, when a second/third target is acquired the gimbal starts
-    // pointing at the previous target's bearing — tracking error is huge,
-    // wellTracked is never true, and hoverTimer never accumulates.
     adaptive.angle = acquiredBearing;
     baseline.angle = acquiredBearing;
     adaptive.vel = baseline.vel = 0;
@@ -1720,13 +1619,9 @@ function resetTargets() {
 
 function filterBearing(target, tempC, snow, visibility, latencyMs) {
   const trueBearing = bearingOf(target);
-  // Measurement spread follows the document's radar ±0.5/±1/±2° scenario
-  // range, while the camera model contributes a smaller localization term.
   const radarErrDeg = radarAngleErrorScenario(snow);
   const cameraErrDeg = cameraLocalizationError(tempC, snow, visibility, latencyMs);
   const sigma = Math.max(0.05, 0.45 * radarErrDeg + 0.15 * cameraErrDeg);
-
-  // Deterministic bounded measurement noise for repeatable screenshots/video.
   const noise = (seededRandom() - 0.5) * 2 * sigma * Math.PI / 180;
   const measurement = wrapAngle(trueBearing + noise);
 
@@ -1738,11 +1633,9 @@ function filterBearing(target, tempC, snow, visibility, latencyMs) {
     return quantizeEncoder(bearingFilter.angle);
   }
 
-  // Predict.
   bearingFilter.angle = wrapAngle(bearingFilter.angle + bearingFilter.rate * dt);
   bearingFilter.variance += 0.0008;
 
-  // Correct.
   const measurementVar = Math.max(1e-5, (sigma * Math.PI / 180) ** 2);
   const gain = bearingFilter.variance / (bearingFilter.variance + measurementVar);
   const innovation = wrapAngle(measurement - bearingFilter.angle);
@@ -1758,8 +1651,6 @@ function stepAxis(state, tempC, windKmh, altM, isAdaptive, targetAng, targetRate
   const friction = 0.05 * frictionFactorAt(tempC);
   const maxT = maxTorqueAt(tempC, altM, isAdaptive);
   const densityRatio = airDensityRatio(altM);
-
-  // PDF wind range is 0–20 m/s. The GUI remains in km/h, so convert and clamp.
   const windMs = Math.min(20, Math.max(0, windKmh / 3.6));
   const windAmplitude = 0.12 * (windMs / 20) * densityRatio;
   const cableStiff = 0.15 * cableFactorAt(tempC);
@@ -1769,16 +1660,13 @@ function stepAxis(state, tempC, windKmh, altM, isAdaptive, targetAng, targetRate
 
   let kp, ki, kd, correctedError;
   if (isAdaptive) {
-    // Adaptive path: faster acquisition, target-rate feed-forward and
-    // disturbance cancellation. The environmental derating above still
-    // limits the available torque.
-    kp = 50.0;  // boosted: critically-damped response for moving targets
+    kp = 50.0;  
     ki = 0.20;
-    kd = 2.00;  // critically damped: 2*sqrt(kp*inertia) = 2*sqrt(50*0.02) = 2.0
+    kd = 2.00; 
     state.estBias += 0.025 * error * dt;
     correctedError = error - state.estBias;
   } else {
-    // Baseline path: intentionally slower response for comparison.
+   
     kp = 6.0;
     ki = 0.08;
     kd = 0.55;
@@ -1794,7 +1682,7 @@ function stepAxis(state, tempC, windKmh, altM, isAdaptive, targetAng, targetRate
   const cableTorque = cableStiff * state.angle;
   const disturbance = windTorque + cableTorque;
 
-  // Adaptive control adds target-rate feed-forward and disturbance cancellation.
+
   let motorTorque = kp * correctedError + ki * state.integral + kd * (targetRate - state.vel);
   if (isAdaptive) motorTorque += disturbance;
   motorTorque = Math.max(-maxT, Math.min(maxT, motorTorque));
@@ -1827,9 +1715,7 @@ function stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latency
   if (errHistoryAdaptive.length > MAX_HISTORY) errHistoryAdaptive.shift();
   if (errHistoryBaseline.length > MAX_HISTORY) errHistoryBaseline.shift();
 
-  // Visual-only simulated engagement state. The source document defines
-  // 0.5° normal and up to 3° severe pointing error; we use the upper 3°
-  // boundary as the lock criterion and require a continuous 1 s dwell.
+  
   if (currentTarget) {
     const wellTracked = rAdaptive.trackingErrorDeg <= GIMBAL_SEVERE_ERROR_DEG;
     if (wellTracked) {
@@ -1857,12 +1743,6 @@ function stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latency
   };
 }
 
-// ============================================================================
-// DRAWING — radar / tactical view
-// ============================================================================
-// ============================================================================
-// DRAWING — radar / tactical view
-// ============================================================================
 const radarCanvas = document.getElementById('radar');
 const rctx = radarCanvas.getContext('2d');
 const R = 300;
@@ -1929,9 +1809,6 @@ function drawRadar(rangeKm, actualAdaptiveAng, actualBaselineAng, showBaseline, 
 }
 
 
-// ============================================================================
-// ERROR CHART — baseline vs adaptive, toggleable
-// ============================================================================
 const errCanvas = document.getElementById('errChart');
 const ectx = errCanvas.getContext('2d');
 function drawErrChart(showBaseline) {
@@ -1957,16 +1834,13 @@ function drawErrChart(showBaseline) {
   plotLine(errHistoryAdaptive, '#5cd68a');
 }
 
-// ============================================================================
-// TRACKED-DRONE TRAJECTORY — compact live history
-// ============================================================================
 
 const trajectoryHistory = [];
 const savedTrajectories = [];
 let trajectoryTargetId = null;
 const MAX_TRAJECTORY_POINTS = 90;
 function drawTrajectoryChart(currentTarget) {
-  // When gimbal locks onto a new drone, save the previous drone trajectory.
+  
   if (currentTarget && trajectoryTargetId !== currentTarget.id) {
     if (trajectoryTargetId && trajectoryHistory.length > 0) {
       savedTrajectories.push({
@@ -2118,9 +1992,7 @@ function drawTrajectoryChart(currentTarget) {
         ? 'SEARCHING'
         : 'SEARCHING';
 }
-// ============================================================================
-// UI WIRING
-// ============================================================================
+
 const tempSlider = document.getElementById('tempSlider');
 const windSlider = document.getElementById('windSlider');
 const altSlider = document.getElementById('altSlider');
@@ -2129,7 +2001,7 @@ const visibilitySlider = document.getElementById('visibilitySlider');
 const latencySlider = document.getElementById('latencySlider');
 const baselineToggle = document.getElementById('baselineToggle');
 
-// Image mapping for scenarios
+
 const presetImages = {
   sea: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80',
   winter: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=1920&q=80',
@@ -2142,17 +2014,12 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
     windSlider.value = btn.dataset.w;
     altSlider.value = btn.dataset.a;
 
-    // Switch background dynamically using CSS variable
     const presetKey = btn.classList.contains('sea') ? 'sea' : btn.classList.contains('winter') ? 'winter' : 'extreme';
     document.documentElement.style.setProperty('--bg-image', `url('${presetImages[presetKey]}')`);
 
-    // CRITICAL: reset all simulation state when switching presets.
-    // Without this, drones keep their old positions/statuses from the previous
-    // run and the gimbal carries stale PID state — neutralization fails because
-    // drones that were already DEACTIVATED stay that way, and drones that drifted
-    // out of range in the old run start in wrong positions for the new conditions.
+   
     resetTargets();
-    seededRandom = mulberry32(42); // restart wind pattern from same seed
+    seededRandom = mulberry32(42); 
 
     updateTelemetry();
   });
@@ -2214,9 +2081,7 @@ function updateTelemetry() {
   return { tempC, windKmh, altM, snow, visibility, latencyMs, rangeKm };
 }
 
-// ============================================================================
-// MAIN LOOP
-// ============================================================================
+
 function loop() {
   const { tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs } = updateTelemetry();
   const showBaseline = baselineToggle.checked;
@@ -2229,7 +2094,6 @@ function loop() {
   document.getElementById('targetBearingNum').textContent = currentTarget ? deg(bearingOf(currentTarget)).toFixed(1) + '°' : '—';
   document.getElementById('vectorRangeNum').textContent = currentTarget ? rangeOf(currentTarget).toFixed(2) + ' km' : '—';
 
-  // Live improvement % over the rolling window (fair rolling-average comparison)
   if (errHistoryAdaptive.length > 10) {
     const avgAdaptive = errHistoryAdaptive.reduce((a, b) => a + b, 0) / errHistoryAdaptive.length;
     const avgBaseline = errHistoryBaseline.reduce((a, b) => a + b, 0) / errHistoryBaseline.length;
