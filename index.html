@@ -219,6 +219,82 @@ body {
   .preset-btn.sea:hover { border-color: var(--green); }
   .preset-btn.winter:hover { border-color: var(--amber); }
   .preset-btn.extreme:hover { border-color: var(--red); }
+  .video-select-btn {
+    width: 100%;
+    height: 28px;
+    margin-top: 4px;
+    background: linear-gradient(180deg, rgba(24,45,61,0.95), rgba(9,25,39,0.95));
+    border: 1px solid rgba(77,216,230,0.34);
+    border-radius: 3px;
+    color: #9bc7d5;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .video-select-btn:hover {
+    color: #4dd8e6;
+    border-color: rgba(77,216,230,0.85);
+    box-shadow: 0 0 10px rgba(77,216,230,0.16);
+  }
+  .video-select-btn:active { transform: scale(0.99); }
+
+  #videoLibraryModal {
+    position: fixed; inset: 0; z-index: 9998;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(2,8,14,0.90); backdrop-filter: blur(8px);
+    padding: 24px;
+  }
+  #videoLibraryModal.open { display: flex; }
+  .video-library {
+    width: min(1100px, 96vw); max-height: 90vh; overflow: auto;
+    background: rgba(8,20,31,0.98); border: 1px solid rgba(77,216,230,0.28);
+    border-radius: 7px; box-shadow: 0 20px 70px rgba(0,0,0,.55); padding: 16px;
+  }
+  .video-library-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+  .video-library-head h2 { margin:0; font-size:13px; letter-spacing:.12em; color:#cfe8f0; }
+  .video-library-head p { margin:4px 0 0; font-size:9px; color:#6f8ca3; }
+  .video-close { background:transparent; border:1px solid #28445a; color:#9bb1c0; padding:6px 10px; border-radius:3px; cursor:pointer; font-family:inherit; }
+  .video-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .video-card { background:rgba(5,15,24,.8); border:1px solid rgba(77,216,230,.14); border-radius:5px; overflow:hidden; cursor:pointer; transition:.2s; }
+  .video-card:hover { border-color:rgba(77,216,230,.65); transform:translateY(-1px); box-shadow:0 0 14px rgba(77,216,230,.10); }
+  .video-thumb { width:100%; aspect-ratio:16/9; background:#07111b center/cover no-repeat; display:flex; align-items:center; justify-content:center; }
+  .video-play { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(77,216,230,.7); color:#4dd8e6; background:rgba(4,12,20,.72); font-size:17px; }
+  .video-card-body { padding:9px; }
+  .video-card-title { font-size:10px; font-weight:700; color:#cfe8f0; margin-bottom:6px; }
+  .video-tags { display:flex; flex-wrap:wrap; gap:4px; }
+  .video-tag { font-size:8px; color:#8da4b5; border:1px solid #28445a; padding:3px 5px; border-radius:2px; }
+
+  #videoOps { position:fixed; inset:0; z-index:10000; display:none; background:#02070d; }
+  #videoOps.open { display:grid; grid-template-columns:minmax(0, 1fr) 330px; }
+  .video-stage { position:relative; min-width:0; background:#000; display:flex; align-items:center; justify-content:center; }
+  #fieldVideo { width:100%; height:100%; object-fit:contain; background:#000; display:block; }
+  #videoTrackCanvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .video-overlay { position:absolute; inset:0; pointer-events:none; border:1px solid rgba(77,216,230,.16); }
+  .video-crosshair { position:absolute; left:50%; top:50%; width:90px; height:90px; transform:translate(-50%,-50%); border:1px solid rgba(77,216,230,.20); border-radius:50%; box-shadow:0 0 20px rgba(77,216,230,.08); opacity:.35; }
+  .video-crosshair:before,.video-crosshair:after { content:''; position:absolute; background:#4dd8e6; opacity:.45; }
+  .video-crosshair:before { width:120px; height:1px; left:-16px; top:44px; }
+  .video-crosshair:after { height:120px; width:1px; top:-16px; left:44px; }
+  .video-target-status { position:absolute; left:14px; top:14px; padding:5px 8px; border:1px solid rgba(77,216,230,.35); background:rgba(2,10,16,.72); color:#4dd8e6; font-size:9px; letter-spacing:.08em; pointer-events:none; }
+  .video-target-status.neutralized { border-color:rgba(46,229,157,.55); color:#2ee59d; }
+  #videoCvCanvas { display:none; }
+  /* The reticle is drawn by the frame tracker at the detected drone center. */
+  .video-crosshair { display:none; }
+  .video-hud { padding:14px; background:rgba(7,17,27,.98); border-left:1px solid rgba(77,216,230,.25); overflow:auto; }
+  .video-hud h2 { margin:0 0 4px; font-size:12px; letter-spacing:.12em; color:#4dd8e6; }
+  .video-hud .mode { font-size:8px; color:#6f8ca3; margin-bottom:12px; }
+  .hud-section { border:1px solid rgba(77,216,230,.14); border-radius:4px; padding:9px; margin-bottom:8px; background:rgba(10,24,38,.55); }
+  .hud-section-title { color:#8da4b5; font-size:8px; letter-spacing:.12em; margin-bottom:7px; }
+  .hud-row { display:flex; justify-content:space-between; gap:10px; margin:5px 0; font-size:9px; color:#7893a7; }
+  .hud-row b { color:#cfe8f0; }
+  .hud-row b.good { color:#2ee59d; }
+  .hud-row b.warn { color:#ffb830; }
+  .hud-close { width:100%; height:28px; margin-top:3px; background:transparent; border:1px solid #28445a; color:#9bb1c0; border-radius:3px; font-family:inherit; cursor:pointer; }
+  .hud-close:hover { border-color:#4dd8e6; color:#4dd8e6; }
+  @media (max-width: 900px) { .video-grid{grid-template-columns:1fr 1fr;} #videoOps.open{grid-template-columns:1fr;} .video-hud{position:absolute;right:0;top:0;bottom:0;width:min(330px,88vw);z-index:2;box-shadow:-10px 0 30px rgba(0,0,0,.5);} }
+
   .reset-btn {
     width: 100%;
     background: var(--bg-deep);
@@ -1059,7 +1135,7 @@ body {
     grid-area: neutralization;
     overflow: hidden;
     min-height: 0;
-    height: 175px;
+    height: 205px;
     align-self: start;
     transform: translateY(-124px);
   }
@@ -1277,6 +1353,8 @@ body {
       <span class="l-active">Active target</span>
       <span class="l-oor">Out of jam range</span>
       <span class="l-dead">Neutralized</span>
+      <span style="color:#d8b4fe;">Bird / non-RF</span>
+      <span style="color:#8fd3ff;">Commercial flight / non-threat</span>
     </div>
   </div>
 
@@ -1355,7 +1433,7 @@ body {
    
 <div class="panel trajectory-panel">
   <div class="panel-label">
-    <span>TRACKED DRONE TRAJECTORIES</span>
+    <span>TRACKED DRONE TRAJECTORIES · BIRDS + FLIGHTS IGNORED</span>
     <span id="trajectoryTarget" style="color:var(--text-dim);">SEARCHING</span>
   </div>
 
@@ -1374,11 +1452,60 @@ body {
       <div class="telemetry-row"><span>Effective jamming range</span><span class="num warn" id="rangeNum">—</span></div>
       <div class="telemetry-row"><span>Drones neutralized</span><span class="num good" id="dronesNum">—</span></div>
       <div class="telemetry-row"><span>Currently tracking</span><span class="num" id="trackingNum">—</span></div>
+       <div class="telemetry-row"><span>RF verification</span><span class="num" id="rfStatusNum">IDLE</span></div>
       <div class="telemetry-row"><span>Status</span><span class="status-badge degraded" id="statusBadge">DEGRADED</span></div>
-      <button class="reset-btn" id="resetBtn">↺ RESET TARGETS</button>
+      <button class="video-select-btn" id="videoSelectBtn">▣ DRONE VIDEO / FIELD FEED</button>
+       <button class="reset-btn" id="resetBtn">↺ RESET TARGETS</button>
     </div>
   </div>
 
+</div>
+
+<div id="videoLibraryModal">
+  <div class="video-library">
+    <div class="video-library-head">
+      <div><h2>DRONE FIELD VIDEO LIBRARY</h2><p>Choose a public drone/quadrotor flight clip. Conditions are locked for the selected demonstration.</p></div>
+      <button class="video-close" id="closeVideoLibrary">CLOSE</button>
+    </div>
+    <div class="video-grid" id="videoGrid"></div>
+  </div>
+</div>
+
+<div id="videoOps">
+  <div class="video-stage">
+    <video id="fieldVideo" playsinline controls preload="auto" title="Uploaded drone field video"></video>
+    <canvas id="videoTrackCanvas"></canvas>
+    <canvas id="videoCvCanvas" width="320" height="256"></canvas>
+    <div class="video-overlay"></div><div class="video-crosshair"></div>
+    <div class="video-target-status" id="videoTargetStatus">FRAME TRACKER: INITIALIZING</div>
+  </div>
+  <aside class="video-hud">
+    <h2>FIELD VIDEO / LOCKED HUD</h2>
+    <div class="mode" id="videoModeLabel">PUBLIC DRONE FOOTAGE · SIMULATION OVERLAY</div>
+    <div class="hud-section"><div class="hud-section-title">FIXED ENVIRONMENT</div>
+      <div class="hud-row"><span>SCENARIO</span><b id="hudScenario">—</b></div>
+      <div class="hud-row"><span>TEMPERATURE</span><b id="hudTemp">—</b></div>
+      <div class="hud-row"><span>WIND</span><b id="hudWind">—</b></div>
+      <div class="hud-row"><span>ALTITUDE</span><b id="hudAlt">—</b></div>
+      <div class="hud-row"><span>SNOW / CLUTTER</span><b id="hudSnow">—</b></div>
+      <div class="hud-row"><span>VISIBILITY</span><b id="hudVisibility">—</b></div>
+      <div class="hud-row"><span>CAMERA LATENCY</span><b id="hudLatency">—</b></div>
+    </div>
+    <div class="hud-section"><div class="hud-section-title">TRACKING / SENSOR STATE</div>
+      <div class="hud-row"><span>GIMBAL ERROR</span><b id="hudError" class="good">—</b></div>
+      <div class="hud-row"><span>GIMBAL VECTOR</span><b id="hudVector">—</b></div>
+      <div class="hud-row"><span>RADAR PD</span><b id="hudRadar" class="good">—</b></div>
+      <div class="hud-row"><span>THERMAL CONF.</span><b id="hudThermal" class="good">—</b></div>
+      <div class="hud-row"><span>RF STATUS</span><b id="hudRF" class="good">—</b></div>
+      <div class="hud-row"><span>TRACK</span><b id="hudTrack">VIDEO TARGET</b></div>
+    </div>
+    <div class="hud-section"><div class="hud-section-title">SIMULATION STATUS</div>
+      <div class="hud-row"><span>MODE</span><b class="warn">NON-INTERACTIVE</b></div>
+      <div class="hud-row"><span>NEUTRALIZATION</span><b id="hudNeutral" class="warn">SIMULATED ONLY</b></div>
+      <div class="hud-row"><span>PARAMETERS</span><b>LOCKED</b></div>
+    </div>
+    <button class="hud-close" id="exitVideoMode">← EXIT FIELD VIDEO</button>
+  </aside>
 </div>
 
 <script>
@@ -1495,7 +1622,24 @@ const INITIAL_DRONES = [
   { id: 'D4', x: -8.5, y: -4.8, vx: 0.20, vy: 0.09, phase: 3.1, type: 'arc', status: null },
   { id: 'D5', x: 11.5, y: 4.5, vx: -0.15, vy: -0.08, phase: 4.0, type: 'cross', status: null }
 ];
-let drones = INITIAL_DRONES.map(d => ({ ...d }));
+let drones = INITIAL_DRONES.map(d => ({ ...d, kind: 'drone' }));
+
+const INITIAL_BIRDS = [
+  { id: 'B1', x: -3.5, y: 2.0, vx: 0.13, vy: 0.09, phase: 0.8, type: 'arc' },
+  { id: 'B2', x: 6.2, y: 1.0, vx: -0.11, vy: 0.12, phase: 2.7, type: 'cross' },
+  { id: 'B3', x: -7.5, y: -2.8, vx: 0.16, vy: 0.06, phase: 4.4, type: 'arc' }
+];
+let birds = INITIAL_BIRDS.map(b => ({ ...b }));
+
+// Commercial flights: visible for airspace awareness. They DO get pulled into
+// the same RF-verification pipeline as drones (so the operator can see the
+// system correctly identify them), but once verified as non-threats the
+// gimbal releases them immediately instead of engaging.
+const INITIAL_AIRCRAFT = [
+  { id: 'C1', callsign: 'AIR-101', x: -17.5, y: 8.0, vx: 0.20, vy: -0.015, phase: 0.4, altitude: 'FL350' },
+  { id: 'C2', callsign: 'AIR-202', x: 16.5, y: -7.0, vx: -0.16, vy: 0.02, phase: 2.1, altitude: 'FL390' }
+];
+let aircraft = INITIAL_AIRCRAFT.map(a => ({ ...a, status: null, kind: 'aircraft' }));
 
 
 const inertia = 0.02;
@@ -1508,7 +1652,9 @@ const errHistoryAdaptive = [];
 const errHistoryBaseline = [];
 const MAX_HISTORY = 150;
 
-const REQUIRED_HOVER_TIME = 1.0;
+const REQUIRED_RF_LOCK_TIME = 1.0;
+let rfLockTimer = 0;
+let rfVerified = false;
 let hoverTimer = 0;
 let scanAngle = 0;
 let _currentRangeKm = 8;
@@ -1569,24 +1715,90 @@ function updateDroneStatuses(rangeKm) {
   });
 }
 
+// Aircraft only become verification candidates once they're within the
+// same detection/jamming range as drones — not simply because they're
+// airborne. Once classified as a non-threat, that classification is sticky.
+function updateAircraftStatuses(rangeKm) {
+  aircraft.forEach(a => {
+    if (a.status === 'NON_THREAT') return;
+    a.status = rangeOf(a) <= rangeKm ? 'ACTIVE' : 'OUT_OF_RANGE';
+  });
+}
+
+function updateBirdMotion() {
+  birds.forEach(b => {
+    const lateral = 0.055 * Math.sin(0.75 * simTime + b.phase);
+
+    if (b.type === 'arc') {
+      b.x += (b.vx - lateral * 0.65) * dt;
+      b.y += (b.vy + lateral) * dt;
+    } else {
+      b.x += (b.vx + lateral) * dt;
+      b.y += (b.vy - lateral * 0.45) * dt;
+    }
+
+    const r = rangeOf(b);
+    if (r > 19.2) {
+      const nx = b.x / r, ny = b.y / r;
+      const outward = b.vx * nx + b.vy * ny;
+      b.vx -= 2 * outward * nx;
+      b.vy -= 2 * outward * ny;
+      b.x = nx * 19.2;
+      b.y = ny * 19.2;
+    }
+  });
+}
+
+function updateAircraftMotion() {
+  aircraft.forEach(a => {
+    // Smooth, near-straight commercial flight routes.
+    const lateral = 0.018 * Math.sin(0.28 * simTime + a.phase);
+    a.x += (a.vx - lateral * 0.25) * dt;
+    a.y += (a.vy + lateral) * dt;
+
+    // Wrap around the simulated airspace so flights remain visible.
+    if (a.x > 21) a.x = -21;
+    if (a.x < -21) a.x = 21;
+    if (a.y > 19.5) a.y = -19.5;
+    if (a.y < -19.5) a.y = 19.5;
+  });
+}
+
+// Drones are the actual threat class and always take priority: the gimbal
+// only considers an aircraft when there is no active drone at all, even if
+// a plane happens to be nearer at that instant.
 function chooseNearestActive() {
-  const active = drones.filter(d => d.status === 'ACTIVE');
-  if (!active.length) return null;
-  active.sort((a, b) => rangeOf(a) - rangeOf(b));
-  return active[0];
+  const activeDrones = drones.filter(d => d.status === 'ACTIVE');
+  if (activeDrones.length) {
+    activeDrones.sort((a, b) => rangeOf(a) - rangeOf(b));
+    return activeDrones[0];
+  }
+  const activeAircraft = aircraft.filter(a => a.status === 'ACTIVE');
+  if (!activeAircraft.length) return null;
+  activeAircraft.sort((a, b) => rangeOf(a) - rangeOf(b));
+  return activeAircraft[0];
+}
+
+function findTrackable(id) {
+  return drones.find(d => d.id === id) || aircraft.find(a => a.id === id);
 }
 
 function getLockedTarget() {
   if (currentTrackedId) {
-    const locked = drones.find(d => d.id === currentTrackedId);
-    if (locked && locked.status === 'ACTIVE') return locked;
-    if (locked && hoverTimer > 0 && locked.status !== 'DEACTIVATED') return locked;
+    const locked = findTrackable(currentTrackedId);
+    // A drone threat preempts an aircraft mid-verification — drones always
+    // come first, even if the gimbal is partway through clearing a plane.
+    const dronePreempts = locked && locked.kind === 'aircraft' && drones.some(d => d.status === 'ACTIVE');
+    if (locked && locked.status === 'ACTIVE' && !dronePreempts) return locked;
+    if (locked && hoverTimer > 0 && locked.status !== 'DEACTIVATED' && !dronePreempts) return locked;
     currentTrackedId = null;
     hoverTimer = 0;
   }
   const next = chooseNearestActive();
   if (next) {
     currentTrackedId = next.id;
+    rfLockTimer = 0;
+    rfVerified = false;
     const acquiredBearing = bearingOf(next);
     resetBearingFilter(acquiredBearing);
 
@@ -1602,7 +1814,11 @@ function getLockedTarget() {
 }
 
 function resetTargets() {
-  drones = INITIAL_DRONES.map(d => ({ ...d, status: null }));
+  drones = INITIAL_DRONES.map(d => ({ ...d, status: null, kind: 'drone' }));
+  birds = INITIAL_BIRDS.map(b => ({ ...b }));
+  aircraft = INITIAL_AIRCRAFT.map(a => ({ ...a, status: null, kind: 'aircraft' }));
+  rfLockTimer = 0;
+  rfVerified = false;
   hoverTimer = 0;
   currentTrackedId = null;
   gimbalAcquired = false;
@@ -1633,9 +1849,11 @@ function filterBearing(target, tempC, snow, visibility, latencyMs) {
     return quantizeEncoder(bearingFilter.angle);
   }
 
+  // Predict.
   bearingFilter.angle = wrapAngle(bearingFilter.angle + bearingFilter.rate * dt);
   bearingFilter.variance += 0.0008;
 
+  // Correct.
   const measurementVar = Math.max(1e-5, (sigma * Math.PI / 180) ** 2);
   const gain = bearingFilter.variance / (bearingFilter.variance + measurementVar);
   const innovation = wrapAngle(measurement - bearingFilter.angle);
@@ -1700,7 +1918,10 @@ function stepAxis(state, tempC, windKmh, altM, isAdaptive, targetAng, targetRate
 function stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs) {
   _currentRangeKm = rangeKm;
   updateDroneMotion();
+  updateBirdMotion();
+  updateAircraftMotion();
   updateDroneStatuses(rangeKm);
+  updateAircraftStatuses(rangeKm);
   const currentTarget = getLockedTarget();
 
   const targetAng = currentTarget ? filterBearing(currentTarget, tempC, snow, visibility, latencyMs) : adaptive.angle;
@@ -1718,17 +1939,48 @@ function stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latency
   
   if (currentTarget) {
     const wellTracked = rAdaptive.trackingErrorDeg <= GIMBAL_SEVERE_ERROR_DEG;
-    if (wellTracked) {
-      hoverTimer += dt;
-      if (hoverTimer >= REQUIRED_HOVER_TIME) {
-        currentTarget.status = 'DEACTIVATED';
-        currentTarget.engagedAt = simTime;
-        currentTrackedId = null;
-        hoverTimer = 0;
-        resetBearingFilter(adaptive.angle);
+
+    // Simulated identification gate:
+    // any tracked object (drone or aircraft) must remain tracked for 1
+    // second before its RF signature is considered verified. Birds never
+    // enter this path. Once verified, drones proceed to engagement, but
+    // aircraft are confirmed as non-threats and released immediately.
+    if (!rfVerified) {
+      if (wellTracked) {
+        rfLockTimer += dt;
+        if (rfLockTimer >= REQUIRED_RF_LOCK_TIME) {
+          rfLockTimer = REQUIRED_RF_LOCK_TIME;
+          rfVerified = true;
+          hoverTimer = 0;
+
+          if (currentTarget.kind === 'aircraft') {
+            // Non-threat confirmed: classify it. It naturally drops out of
+            // the candidate pool (status is no longer 'ACTIVE'), so the next
+            // loop tick hands the gimbal to the next nearest target without
+            // ever attempting engagement.
+            currentTarget.status = 'NON_THREAT';
+            currentTarget.verifiedAt = simTime;
+          }
+        }
+      } else {
+        rfLockTimer = Math.max(0, rfLockTimer - dt);
       }
     } else {
-      hoverTimer = Math.max(0, hoverTimer - dt);
+      // Once a drone is RF-verified, the simulated engagement occurs.
+      if (wellTracked) {
+        hoverTimer += dt;
+        if (hoverTimer >= 0.10) {
+          currentTarget.status = 'DEACTIVATED';
+          currentTarget.engagedAt = simTime;
+          currentTrackedId = null;
+          rfLockTimer = 0;
+          rfVerified = false;
+          hoverTimer = 0;
+          resetBearingFilter(adaptive.angle);
+        }
+      } else {
+        hoverTimer = Math.max(0, hoverTimer - dt);
+      }
     }
   }
 
@@ -1767,6 +2019,87 @@ function drawRadar(rangeKm, actualAdaptiveAng, actualBaselineAng, showBaseline, 
   rctx.fillStyle='rgba(92,214,138,0.10)'; rctx.fill();
   rctx.strokeStyle='#5cd68a'; rctx.lineWidth=1.5; rctx.setLineDash([5,4]); rctx.stroke(); rctx.setLineDash([]);
 
+  // Commercial flights are visible for airspace awareness only.
+  aircraft.forEach(a => {
+    const dist = rangeOf(a), ang = bearingOf(a), rr = Math.min(dist, 20);
+    const px = CENTER.x + Math.cos(ang) * kmToPx(rr);
+    const py = CENTER.y + Math.sin(ang) * kmToPx(rr);
+
+    rctx.save();
+    rctx.translate(px, py);
+    // Rotate the aircraft so its nose points in its actual direction of travel.
+    const heading = Math.atan2(a.vy, a.vx);
+    rctx.rotate(heading);
+    rctx.strokeStyle = '#8fd3ff';
+    rctx.fillStyle = '#8fd3ff';
+    rctx.lineWidth = 1.5;
+    // Simple aircraft silhouette.
+    rctx.beginPath();
+    rctx.moveTo(9, 0);
+    rctx.lineTo(-6, -2);
+    rctx.lineTo(-4, 0);
+    rctx.lineTo(-6, 2);
+    rctx.closePath();
+    rctx.fill();
+    rctx.beginPath();
+    rctx.moveTo(2, 0); rctx.lineTo(-2, -7);
+    rctx.moveTo(2, 0); rctx.lineTo(-2, 7);
+    rctx.moveTo(-4, 0); rctx.lineTo(-7, -4);
+    rctx.moveTo(-4, 0); rctx.lineTo(-7, 4);
+    rctx.stroke();
+    rctx.restore();
+
+    if (currentTarget && currentTarget.id === a.id) {
+      rctx.strokeStyle = '#4dd8e6'; rctx.lineWidth = 1.5; rctx.setLineDash([3, 3]);
+      rctx.beginPath(); rctx.arc(px, py, 14, 0, Math.PI * 2); rctx.stroke(); rctx.setLineDash([]);
+    }
+
+    rctx.textAlign = 'center';
+    rctx.font = '9px monospace';
+    const isCurrent = currentTarget && currentTarget.id === a.id;
+    const statusLabel = a.status === 'NON_THREAT'
+      ? 'NON-THREAT \u2713 VERIFIED'
+      : (isCurrent ? (rfVerified ? 'NON-THREAT \u2713 VERIFIED' : `RF LOCK ${rfLockTimer.toFixed(1)}/1.0s`) : 'COMMERCIAL');
+    rctx.fillStyle = a.status === 'NON_THREAT' ? '#5cd68a' : '#8fd3ff';
+    rctx.fillText(`${a.id} ${statusLabel}`, px, py + 18);
+    rctx.font = '8px monospace';
+    rctx.fillStyle = '#6f8ca3';
+    rctx.fillText(a.altitude, px, py + 28);
+    rctx.textAlign = 'left';
+  });
+
+  // Birds are tracked as non-RF objects for situational awareness only.
+  birds.forEach(b => {
+    const dist = rangeOf(b), ang = bearingOf(b), rr = Math.min(dist, 20);
+    const px = CENTER.x + Math.cos(ang) * kmToPx(rr);
+    const py = CENTER.y + Math.sin(ang) * kmToPx(rr);
+
+    // Simple bird-like marker: small diamond + wings.
+    rctx.strokeStyle = '#d8b4fe';
+    rctx.fillStyle = '#d8b4fe';
+    rctx.lineWidth = 1.5;
+    rctx.beginPath();
+    rctx.moveTo(px, py - 5);
+    rctx.lineTo(px + 4, py);
+    rctx.lineTo(px, py + 5);
+    rctx.lineTo(px - 4, py);
+    rctx.closePath();
+    rctx.fill();
+
+    rctx.beginPath();
+    rctx.moveTo(px - 8, py - 2);
+    rctx.lineTo(px - 3, py + 1);
+    rctx.moveTo(px + 8, py - 2);
+    rctx.lineTo(px + 3, py + 1);
+    rctx.stroke();
+
+    rctx.font = '9px monospace';
+    rctx.textAlign = 'center';
+    rctx.fillStyle = '#d8b4fe';
+    rctx.fillText(`${b.id} NON-RF`, px, py + 19);
+    rctx.textAlign = 'left';
+  });
+
   drones.forEach(d=>{
     const dist=rangeOf(d), ang=bearingOf(d), rr=Math.min(dist,20);
     const px=CENTER.x+Math.cos(ang)*kmToPx(rr), py=CENTER.y+Math.sin(ang)*kmToPx(rr), size=7;
@@ -1799,7 +2132,10 @@ function drawRadar(rangeKm, actualAdaptiveAng, actualBaselineAng, showBaseline, 
     const tx=CENTER.x+Math.cos(ta)*tr, ty=CENTER.y+Math.sin(ta)*tr;
     rctx.strokeStyle='rgba(255,184,48,0.90)'; rctx.lineWidth=1.2; rctx.setLineDash([2,3]); rctx.beginPath(); rctx.moveTo(CENTER.x,CENTER.y); rctx.lineTo(tx,ty); rctx.stroke(); rctx.setLineDash([]);
     rctx.fillStyle='#ffb830'; rctx.font='10px monospace';
-    rctx.fillText(`TARGET ${currentTarget.id}   RANGE ${rangeOf(currentTarget).toFixed(2)} km   BEARING ${deg(ta).toFixed(1)}°`,12,20);
+    const rfLabel = rfVerified
+      ? 'RF VERIFIED'
+      : `RF LOCK ${rfLockTimer.toFixed(1)} / 1.0s`;
+    rctx.fillText(`TARGET ${currentTarget.id}   ${rfLabel}   RANGE ${rangeOf(currentTarget).toFixed(2)} km   BEARING ${deg(ta).toFixed(1)}°`,12,20);
   }
   rctx.fillStyle='#4dd8e6'; rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,5,0,Math.PI*2); rctx.fill();
   rctx.beginPath(); rctx.arc(ax,ay,4,0,Math.PI*2); rctx.fill();
@@ -2082,13 +2418,524 @@ function updateTelemetry() {
 }
 
 
+const VIDEO_SCENARIOS = [
+  {
+    title:'SEA LEVEL DRONE VIDEO 01',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/1.mp4',
+    source:'https://github.com/jiteshanosh/anti-drone-dashboard/raw/refs/heads/main/videos/1.mp4',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 02',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/2.mp4',
+    source:'LOCAL MP4 · VIDEO 02',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 03',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/3.mp4',
+    source:'LOCAL MP4 · VIDEO 03',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 04',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/4.mp4',
+    source:'LOCAL MP4 · VIDEO 04',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 05',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/5.mp4',
+    source:'LOCAL MP4 · VIDEO 05',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 06',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/6.mp4',
+    source:'LOCAL MP4 · VIDEO 06',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 07',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/7.mp4',
+    source:'LOCAL MP4 · VIDEO 07',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 08',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/8.mp4',
+    source:'LOCAL MP4 · VIDEO 08',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 09',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/9.mp4',
+    source:'LOCAL MP4 · VIDEO 09',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 10',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/10.mp4',
+    source:'LOCAL MP4 · VIDEO 10',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 11',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/11.mp4',
+    source:'LOCAL MP4 · VIDEO 11',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 12',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/12.mp4',
+    source:'LOCAL MP4 · VIDEO 12',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 13',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/13.mp4',
+    source:'LOCAL MP4 · VIDEO 13',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 14',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/14.mp4',
+    source:'LOCAL MP4 · VIDEO 14',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 15',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/15.mp4',
+    source:'LOCAL MP4 · VIDEO 15',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 16',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/16.mp4',
+    source:'LOCAL MP4 · VIDEO 16',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 17',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/17.mp4',
+    source:'LOCAL MP4 · VIDEO 17',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 18',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/18.mp4',
+    source:'LOCAL MP4 · VIDEO 18',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 19',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/19.mp4',
+    source:'LOCAL MP4 · VIDEO 19',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 20',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/20.mp4',
+    source:'LOCAL MP4 · VIDEO 20',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  }
+];
+
+const videoLibraryModal = document.getElementById('videoLibraryModal');
+const videoOps = document.getElementById('videoOps');
+const fieldVideo = document.getElementById('fieldVideo');
+const videoTrackCanvas = document.getElementById('videoTrackCanvas');
+const videoCvCanvas = document.getElementById('videoCvCanvas');
+const videoTrackCtx = videoTrackCanvas.getContext('2d');
+const videoCvCtx = videoCvCanvas.getContext('2d', {willReadFrequently:true});
+videoCvCanvas.width = 640;
+videoCvCanvas.height = 512;
+const videoGimbal = { angle:0, vel:0, bias:0, integral:0, prevError:0, estBias:0 };
+let videoLastTarget = null;
+let videoLastMeasurementTime = 0;
+const videoGrid = document.getElementById('videoGrid');
+const videoSelectBtn = document.getElementById('videoSelectBtn');
+const videoTargetStatus = document.getElementById('videoTargetStatus');
+let activeVideoScenario = null;
+let videoHudTimer = null;
+let videoTrackingRAF = null;
+let videoNeutralized = false;
+let videoLockStart = 0;
+
+// Exact folder structure: SIH/dashboard20.html + SIH/videos/1.mp4 ... 20.mp4.
+// Therefore every local video path is ./videos/<number>.mp4
+
+function renderVideoLibrary(){
+  videoGrid.innerHTML = VIDEO_SCENARIOS.map((v,i)=>{
+    return `<div class="video-card" data-video-index="${i}">
+      <div class="video-thumb"><div style="padding:22px;color:#4dd8e6;font-family:monospace;font-size:15px;line-height:1.7;">SEA LEVEL FIELD VIDEO<br>LOCAL MP4 · VIDEO ${String(i+1).padStart(2,'0')}<br><span style="color:#8da4b5;font-size:12px;">FRAME-BY-FRAME DRONE TRACKING</span></div><div class="video-play">▶</div></div>
+      <div class="video-card-body"><div class="video-card-title">${v.title}</div>
+      <div class="video-tags"><span class="video-tag">${v.scenario}</span><span class="video-tag">20°C</span><span class="video-tag">10 km/h</span><span class="video-tag">ALT 0 m</span></div></div>
+    </div>`;
+  }).join('');
+  videoGrid.querySelectorAll('.video-card').forEach(card=>card.addEventListener('click',()=>openFieldVideo(Number(card.dataset.videoIndex))));
+}
+
+function resizeVideoTrackCanvas(){
+  const rect=videoTrackCanvas.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  videoTrackCanvas.width=Math.max(1,Math.round(rect.width*dpr));
+  videoTrackCanvas.height=Math.max(1,Math.round(rect.height*dpr));
+}
+
+function clearVideoTracking(){
+  videoTrackCtx.clearRect(0,0,videoTrackCanvas.width,videoTrackCanvas.height);
+}
+
+function processVideoFrame(){
+  if(!activeVideoScenario || videoOps.classList.contains('open')===false || fieldVideo.readyState < 2){
+    videoTrackingRAF=requestAnimationFrame(processVideoFrame);
+    return;
+  }
+
+  const vw=videoCvCanvas.width, vh=videoCvCanvas.height;
+  videoCvCtx.drawImage(fieldVideo,0,0,vw,vh);
+  const img=videoCvCtx.getImageData(0,0,vw,vh);
+  const p=img.data;
+
+  // This uploaded clip already contains a detector annotation.  We use that
+  // annotation only to establish a search window, then locate the actual
+  // aircraft/drone pixels inside the window.  The old implementation used
+  // the annotation label itself, which is why the reticle was offset.
+  let minX=vw, minY=vh, maxX=-1, maxY=-1;
+  for(let y=0;y<vh;y++){
+    for(let x=0;x<vw;x++){
+      const k=(y*vw+x)*4, r=p[k], g=p[k+1], b=p[k+2];
+      // Red/magenta detector annotation used by this particular video.
+      if(r>135 && r>g*1.35 && r>b*1.05 && g<120){
+        if(x<minX)minX=x; if(x>maxX)maxX=x;
+        if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+  }
+
+  clearVideoTracking();
+  let detected = false;
+  let targetX = 0, targetY = 0, targetW = 0, targetH = 0;
+
+  if(maxX>=0 && maxY>=0){
+    const labelH = Math.min(24, Math.max(20, maxY-minY+1));
+    const rx = Math.max(0, minX-2);
+    const ry = Math.min(vh-1, minY + labelH);
+    const rw = Math.min(90, vw-rx);
+    const rh = Math.min(80, vh-ry);
+
+    // Drone silhouette: dark compact component against the bright sky.
+    const roiW=Math.max(1,Math.floor(rw)), roiH=Math.max(1,Math.floor(rh));
+    const gray=new Uint8Array(roiW*roiH);
+    for(let yy=0;yy<roiH;yy++){
+      for(let xx=0;xx<roiW;xx++){
+        const sx=rx+xx, sy=ry+yy, k=(sy*vw+sx)*4;
+        gray[yy*roiW+xx]=(0.299*p[k]+0.587*p[k+1]+0.114*p[k+2]);
+      }
+    }
+
+    // Connected components on a compact dark-pixel mask.
+    const seen=new Uint8Array(roiW*roiH);
+    const comps=[];
+    const qx=new Int32Array(roiW*roiH), qy=new Int32Array(roiW*roiH);
+    for(let yy=1;yy<roiH-1;yy++){
+      for(let xx=1;xx<roiW-1;xx++){
+        const idx=yy*roiW+xx;
+        if(seen[idx] || gray[idx]>=125) continue;
+        let head=0,tail=0, count=0, sxSum=0, sySum=0, cminX=xx,cmaxX=xx,cminY=yy,cmaxY=yy;
+        qx[tail]=xx; qy[tail]=yy; tail++; seen[idx]=1;
+        while(head<tail){
+          const cx=qx[head], cy=qy[head]; head++; count++; sxSum+=cx; sySum+=cy;
+          if(cx<cminX)cminX=cx; if(cx>cmaxX)cmaxX=cx; if(cy<cminY)cminY=cy; if(cy>cmaxY)cmaxY=cy;
+          for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+            if(!dx && !dy) continue;
+            const nx=cx+dx, ny=cy+dy;
+            if(nx<=0 || ny<=0 || nx>=roiW-1 || ny>=roiH-1) continue;
+            const ni=ny*roiW+nx;
+            if(!seen[ni] && gray[ni]<125){ seen[ni]=1; qx[tail]=nx; qy[tail]=ny; tail++; }
+          }
+        }
+        const cw=cmaxX-cminX+1, ch=cmaxY-cminY+1;
+        if(count>=18 && count<=450 && cw>=5 && cw<=38 && ch>=3 && ch<=28 && cw*ch<=900){
+          comps.push({count,cx:sxSum/count+rx,cy:sySum/count+ry,w:cw,h:ch});
+        }
+      }
+    }
+
+    if(comps.length){
+      // Prefer the compact component nearest the previous track. This keeps
+      // the tracker stable if small dark scene details enter the search ROI.
+      comps.sort((a,b)=>{
+        const da=videoLastTarget ? Math.hypot(a.cx-videoLastTarget.x,a.cy-videoLastTarget.y) : 0;
+        const db=videoLastTarget ? Math.hypot(b.cx-videoLastTarget.x,b.cy-videoLastTarget.y) : 0;
+        if(videoLastTarget && Math.abs(da-db)>5) return da-db;
+        return b.count-a.count;
+      });
+      const c=comps[0];
+      targetX=c.cx; targetY=c.cy; targetW=c.w+12; targetH=c.h+10;
+      detected=true;
+    }
+  }
+
+  // Fallback: keep the last valid visual track for a short occlusion.
+  if(!detected && videoLastTarget && performance.now()-videoLastTarget.t<350){
+    targetX=videoLastTarget.x; targetY=videoLastTarget.y;
+    targetW=videoLastTarget.w; targetH=videoLastTarget.h;
+    detected=true;
+  }
+
+  if(detected){
+    const now=performance.now();
+    const imageDt=videoLastMeasurementTime ? Math.max(0.016,Math.min(0.12,(now-videoLastMeasurementTime)/1000)) : 0.033;
+    videoLastMeasurementTime=now;
+    // Horizontal gimbal command uses the same ±60° image-to-angle mapping
+    // used by the dashboard's gimbal vector display.
+    const targetAng=(targetX/vw-0.5)*120*Math.PI/180;
+    const targetRate=videoLastTarget ? wrapAngle(targetAng-videoLastTarget.angle)/imageDt : 0;
+
+    // Use the SAME gimbal physics as the dashboard: encoder quantization,
+    // temperature/altitude torque derating, cold friction, wind disturbance,
+    // cable stiffness, inertia and adaptive PID control.  Vision supplies the
+    // measurement; physics determines the gimbal response/error.
+    const physics=stepAxis(
+      videoGimbal,
+      activeVideoScenario.temp,
+      activeVideoScenario.wind,
+      activeVideoScenario.alt,
+      true,
+      targetAng,
+      targetRate
+    );
+
+    // For the visual overlay, put the reticle on the measured drone center.
+    // The physics result is shown as the actual gimbal tracking error rather
+    // than artificially moving the reticle away from the visible target.
+    videoLastTarget={x:targetX,y:targetY,w:targetW,h:targetH,t:now,angle:targetAng};
+
+    const stageW=videoTrackCanvas.width, stageH=videoTrackCanvas.height;
+    const videoAspect=vw/vh, stageAspect=stageW/stageH;
+    let renderW,renderH,offsetX,offsetY;
+    if(stageAspect>videoAspect){ renderH=stageH; renderW=renderH*videoAspect; offsetX=(stageW-renderW)/2; offsetY=0; }
+    else { renderW=stageW; renderH=renderW/videoAspect; offsetX=0; offsetY=(stageH-renderH)/2; }
+    const sx=renderW/vw, sy=renderH/vh;
+    const cx=offsetX+targetX*sx, cy=offsetY+targetY*sy;
+    const boxW=Math.max(34,targetW*sx), boxH=Math.max(24,targetH*sy);
+
+    videoTrackCtx.save();
+    videoTrackCtx.strokeStyle=videoNeutralized ? '#2ee59d' : '#4dd8e6';
+    videoTrackCtx.lineWidth=2;
+    videoTrackCtx.strokeRect(cx-boxW/2,cy-boxH/2,boxW,boxH);
+    videoTrackCtx.beginPath();
+    videoTrackCtx.arc(cx,cy,11,0,Math.PI*2);
+    videoTrackCtx.moveTo(cx-28,cy); videoTrackCtx.lineTo(cx+28,cy);
+    videoTrackCtx.moveTo(cx,cy-28); videoTrackCtx.lineTo(cx,cy+28);
+    videoTrackCtx.stroke();
+    videoTrackCtx.font='9px monospace';
+    videoTrackCtx.fillStyle=videoNeutralized ? '#2ee59d' : '#4dd8e6';
+    videoTrackCtx.fillText(videoNeutralized ? 'DRONE · NEUTRALIZED (SIM)' : 'DRONE · TRACKED', cx+boxW/2+6, cy-7);
+    videoTrackCtx.fillText('FRAME LOCK', cx+boxW/2+6, cy+7);
+    videoTrackCtx.restore();
+
+    if(!videoNeutralized){
+      if(!videoLockStart) videoLockStart=now;
+      const lockSeconds=(now-videoLockStart)/1000;
+      if(lockSeconds>=1.5 && physics.trackingErrorDeg<=GIMBAL_SEVERE_ERROR_DEG){
+        videoNeutralized=true;
+        videoTargetStatus.textContent='TARGET LOCKED · SIMULATED NEUTRALIZATION';
+        videoTargetStatus.classList.add('neutralized');
+        document.getElementById('hudNeutral').textContent='NEUTRALIZED (SIM)';
+        document.getElementById('hudNeutral').className='good';
+      } else {
+        videoTargetStatus.textContent='FRAME TRACKER: LOCKED · '+lockSeconds.toFixed(1)+' s';
+      }
+    }
+
+    const radarPD=radarDetectionProbability(activeVideoScenario.temp,activeVideoScenario.snow,activeVideoScenario.visibility);
+    const thermal=cameraConfidence(activeVideoScenario.temp,activeVideoScenario.snow,activeVideoScenario.visibility,activeVideoScenario.latency);
+    document.getElementById('hudTrack').textContent=videoNeutralized ? 'VIDEO DRONE · NEUTRALIZED' : 'VIDEO DRONE · TRACKED';
+    document.getElementById('hudError').textContent=physics.trackingErrorDeg.toFixed(3)+'° error';
+    document.getElementById('hudVector').textContent=deg(targetAng).toFixed(1)+'°';
+    document.getElementById('hudRadar').textContent=(radarPD*100).toFixed(1)+'%';
+    document.getElementById('hudThermal').textContent=(thermal*100).toFixed(1)+'%';
+    document.getElementById('hudRF').textContent='DRONE CANDIDATE';
+  } else {
+    videoLastMeasurementTime=0;
+    videoLockStart=0;
+    videoTargetStatus.textContent='FRAME TRACKER: SEARCHING';
+    document.getElementById('hudTrack').textContent='SEARCHING VIDEO FRAMES';
+    document.getElementById('hudRF').textContent='SEARCHING';
+  }
+
+  videoTrackingRAF=requestAnimationFrame(processVideoFrame);
+}
+
+function openFieldVideo(index){
+  activeVideoScenario = VIDEO_SCENARIOS[index];
+  videoLibraryModal.classList.remove('open');
+  const v = activeVideoScenario;
+
+  // Exact local path: dashboard20.html and the videos/ folder are siblings.
+  // Example: SIH/dashboard20.html -> SIH/videos/5.mp4
+  fieldVideo.pause();
+  fieldVideo.removeAttribute('src');
+  fieldVideo.load();
+  fieldVideo.src = v.video;
+  fieldVideo.load();
+  fieldVideo.currentTime = 0;
+  videoNeutralized=false;
+  videoLockStart=0;
+  videoLastTarget=null;
+  videoLastMeasurementTime=0;
+  Object.assign(videoGimbal,{angle:0,vel:0,bias:0,integral:0,prevError:0,estBias:0});
+  videoTargetStatus.textContent='FRAME TRACKER: STARTING';
+  videoTargetStatus.classList.remove('neutralized');
+  document.getElementById('hudNeutral').textContent='TRACKING';
+  document.getElementById('hudNeutral').className='warn';
+
+  document.getElementById('hudScenario').textContent=v.scenario;
+  document.getElementById('hudTemp').textContent=v.temp+'°C';
+  document.getElementById('hudWind').textContent=v.wind+' km/h';
+  document.getElementById('hudAlt').textContent=v.alt+' m';
+  document.getElementById('hudSnow').textContent=v.snow.toFixed(2);
+  document.getElementById('hudVisibility').textContent=v.visibility.toFixed(2);
+  document.getElementById('hudLatency').textContent=v.latency+' ms';
+  document.getElementById('videoModeLabel').textContent = `${v.source} · ${v.conditionNote}`;
+  videoOps.classList.add('open');
+  resizeVideoTrackCanvas();
+  document.querySelectorAll('#tempSlider,#windSlider,#altSlider,#snowSlider,#visibilitySlider,#latencySlider,#baselineToggle').forEach(el=>el.disabled=true);
+  videoHudTimer=setInterval(updateVideoHud,250);
+  const startVideo = () => {
+    fieldVideo.play().catch(()=>{
+      // Browser autoplay may be blocked; controls remain available.
+    });
+  };
+  if(fieldVideo.readyState >= 2) startVideo();
+  else fieldVideo.addEventListener('loadeddata', startVideo, {once:true});
+  cancelAnimationFrame(videoTrackingRAF);
+  videoTrackingRAF=requestAnimationFrame(processVideoFrame);
+  if(videoOps.requestFullscreen){ videoOps.requestFullscreen().catch(()=>{}); }
+}
+
+function updateVideoHud(){
+  if(!activeVideoScenario) return;
+  // Keep the video HUD tied to the selected fixed condition, while the
+  // tracking rows are updated directly by the frame tracker.
+  document.getElementById('hudRadar').textContent = document.getElementById('hudRadar').textContent || '94.0%';
+}
+
+function closeFieldVideo(){
+  if(videoHudTimer) clearInterval(videoHudTimer);
+  videoHudTimer=null;
+  cancelAnimationFrame(videoTrackingRAF);
+  videoTrackingRAF=null;
+  fieldVideo.pause();
+  fieldVideo.removeAttribute('src');
+  fieldVideo.load();
+  clearVideoTracking();
+  videoOps.classList.remove('open');
+  activeVideoScenario=null;
+  videoNeutralized=false;
+  videoLockStart=0;
+  videoLastTarget=null;
+  videoLastMeasurementTime=0;
+  videoTargetStatus.classList.remove('neutralized');
+  document.querySelectorAll('#tempSlider,#windSlider,#altSlider,#snowSlider,#visibilitySlider,#latencySlider,#baselineToggle').forEach(el=>el.disabled=false);
+  if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+}
+
+
+fieldVideo.addEventListener('error',()=>{
+  const code = fieldVideo.error ? fieldVideo.error.code : 0;
+  videoTargetStatus.textContent = `VIDEO LOAD ERROR · ${vPathForError(activeVideoScenario)}`;
+});
+function vPathForError(v){ return v ? v.video : './videos/<number>.mp4'; }
+
+fieldVideo.addEventListener('ended',()=>{
+  if(activeVideoScenario){
+    fieldVideo.currentTime=0;
+    fieldVideo.play().catch(()=>{});
+    videoNeutralized=false;
+    videoLockStart=0;
+    videoLastTarget=null;
+    videoLastMeasurementTime=0;
+    Object.assign(videoGimbal,{angle:0,vel:0,bias:0,integral:0,prevError:0,estBias:0});
+    videoTargetStatus.textContent='FRAME TRACKER: REACQUIRING';
+    videoTargetStatus.classList.remove('neutralized');
+    document.getElementById('hudNeutral').textContent='TRACKING';
+    document.getElementById('hudNeutral').className='warn';
+  }
+});
+
+videoSelectBtn.addEventListener('click',()=>{ renderVideoLibrary(); videoLibraryModal.classList.add('open'); });
+document.getElementById('closeVideoLibrary').addEventListener('click',()=>videoLibraryModal.classList.remove('open'));
+document.getElementById('exitVideoMode').addEventListener('click',closeFieldVideo);
+videoOps.addEventListener('dblclick',closeFieldVideo);
+window.addEventListener('resize',resizeVideoTrackCanvas);
+
 function loop() {
   const { tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs } = updateTelemetry();
   const showBaseline = baselineToggle.checked;
   const { actualAdaptive, actualBaseline, errAdaptive, currentTarget } = stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs);
 
   document.getElementById('rmsNum').textContent = errAdaptive.toFixed(3) + '° error';
-  document.getElementById('trackingNum').textContent = currentTarget ? currentTarget.id : 'none (all clear)';
+  document.getElementById('trackingNum').textContent =
+    currentTarget
+      ? (rfVerified ? currentTarget.id + ' · VERIFIED' : currentTarget.id + ' · RF LOCK')
+      : 'none (all clear)';
+
+  const rfStatusEl = document.getElementById('rfStatusNum');
+  if (!currentTarget) {
+    rfStatusEl.textContent = 'IDLE';
+    rfStatusEl.className = 'num good';
+  } else if (rfVerified) {
+    rfStatusEl.textContent = 'VERIFIED';
+    rfStatusEl.className = 'num good';
+  } else {
+    rfStatusEl.textContent = `${rfLockTimer.toFixed(1)} / 1.0 s`;
+    rfStatusEl.className = 'num warn';
+  }
+
   document.getElementById('targetRangeNum').textContent = currentTarget ? rangeOf(currentTarget).toFixed(2) + ' km' : '—';
   document.getElementById('gimbalVectorNum').textContent = deg(actualAdaptive).toFixed(1) + '°';
   document.getElementById('targetBearingNum').textContent = currentTarget ? deg(bearingOf(currentTarget)).toFixed(1) + '°' : '—';
@@ -2114,5 +2961,6 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 
 loop();
 </script>
+
 </body>
 </html>
