@@ -293,6 +293,9 @@ body {
   .hud-row b.warn { color:#ffb830; }
   .hud-close { width:100%; height:28px; margin-top:3px; background:transparent; border:1px solid #28445a; color:#9bb1c0; border-radius:3px; font-family:inherit; cursor:pointer; }
   .hud-close:hover { border-color:#4dd8e6; color:#4dd8e6; }
+  .video-trajectory-panel { margin-top:7px; border:1px solid rgba(77,216,230,.14); border-radius:4px; padding:6px; background:rgba(10,24,38,.55); }
+  .video-trajectory-title { color:#8da4b5; font-size:8px; letter-spacing:.12em; margin-bottom:5px; }
+  #videoTrajectoryCanvas { width:100%; height:82px; display:block; background:rgba(2,8,14,.75); border:1px solid rgba(77,216,230,.10); }
   @media (max-width: 900px) { .video-grid{grid-template-columns:1fr 1fr;} #videoOps.open{grid-template-columns:1fr;} .video-hud{position:absolute;right:0;top:0;bottom:0;width:min(330px,88vw);z-index:2;box-shadow:-10px 0 30px rgba(0,0,0,.5);} }
 
   .reset-btn {
@@ -1505,6 +1508,10 @@ body {
       <div class="hud-row"><span>PARAMETERS</span><b>LOCKED</b></div>
     </div>
     <button class="hud-close" id="exitVideoMode">← EXIT FIELD VIDEO</button>
+    <div class="video-trajectory-panel">
+      <div class="video-trajectory-title">REAL-TIME DRONE TRAJECTORY</div>
+      <canvas id="videoTrajectoryCanvas" width="300" height="82"></canvas>
+    </div>
   </aside>
 </div>
 
@@ -2424,7 +2431,7 @@ const VIDEO_SCENARIOS = [
     scenario:'SEA LEVEL / NORMAL CONDITIONS',
     temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
     video:'./videos/1.mp4',
-    source:'https://github.com/jiteshanosh/anti-drone-dashboard/raw/refs/heads/main/videos/1.mp4',
+    source:'LOCAL MP4 · VIDEO 01',
     conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
   },
   {
@@ -2593,6 +2600,11 @@ videoCvCanvas.height = 512;
 const videoGimbal = { angle:0, vel:0, bias:0, integral:0, prevError:0, estBias:0 };
 let videoLastTarget = null;
 let videoLastMeasurementTime = 0;
+let videoPrevGray = null;
+const videoTrajectory = [];
+const MAX_VIDEO_TRAJECTORY_POINTS = 180;
+const videoTrajectoryCanvas = document.getElementById('videoTrajectoryCanvas');
+const videoTrajectoryCtx = videoTrajectoryCanvas.getContext('2d');
 const videoGrid = document.getElementById('videoGrid');
 const videoSelectBtn = document.getElementById('videoSelectBtn');
 const videoTargetStatus = document.getElementById('videoTargetStatus');
@@ -2627,6 +2639,45 @@ function clearVideoTracking(){
   videoTrackCtx.clearRect(0,0,videoTrackCanvas.width,videoTrackCanvas.height);
 }
 
+function clearVideoTrajectory(){
+  videoTrajectory.length = 0;
+  videoTrajectoryCtx.clearRect(0,0,videoTrajectoryCanvas.width,videoTrajectoryCanvas.height);
+}
+
+function drawVideoTrajectory(){
+  const w=videoTrajectoryCanvas.width, h=videoTrajectoryCanvas.height;
+  videoTrajectoryCtx.clearRect(0,0,w,h);
+  videoTrajectoryCtx.save();
+  videoTrajectoryCtx.strokeStyle='rgba(77,216,230,.12)';
+  videoTrajectoryCtx.lineWidth=1;
+  videoTrajectoryCtx.strokeRect(.5,.5,w-1,h-1);
+  videoTrajectoryCtx.beginPath();
+  videoTrajectoryCtx.moveTo(w/2,4); videoTrajectoryCtx.lineTo(w/2,h-4);
+  videoTrajectoryCtx.moveTo(4,h/2); videoTrajectoryCtx.lineTo(w-4,h/2);
+  videoTrajectoryCtx.stroke();
+  if(videoTrajectory.length>1){
+    videoTrajectoryCtx.beginPath();
+    videoTrajectory.forEach((pt,i)=>{
+      const x=pt.x*(w-8)+4, y=pt.y*(h-8)+4;
+      if(i===0) videoTrajectoryCtx.moveTo(x,y); else videoTrajectoryCtx.lineTo(x,y);
+    });
+    videoTrajectoryCtx.strokeStyle='#4dd8e6';
+    videoTrajectoryCtx.lineWidth=1.5;
+    videoTrajectoryCtx.stroke();
+    const last=videoTrajectory[videoTrajectory.length-1];
+    const lx=last.x*(w-8)+4, ly=last.y*(h-8)+4;
+    videoTrajectoryCtx.beginPath();
+    videoTrajectoryCtx.arc(lx,ly,3.5,0,Math.PI*2);
+    videoTrajectoryCtx.strokeStyle='#2ee59d';
+    videoTrajectoryCtx.lineWidth=1.5;
+    videoTrajectoryCtx.stroke();
+  }
+  videoTrajectoryCtx.fillStyle='#6f8ca3';
+  videoTrajectoryCtx.font='7px monospace';
+  videoTrajectoryCtx.fillText('VIDEO X/Y PATH',7,h-6);
+  videoTrajectoryCtx.restore();
+}
+
 function processVideoFrame(){
   if(!activeVideoScenario || videoOps.classList.contains('open')===false || fieldVideo.readyState < 2){
     videoTrackingRAF=requestAnimationFrame(processVideoFrame);
@@ -2638,168 +2689,203 @@ function processVideoFrame(){
   const img=videoCvCtx.getImageData(0,0,vw,vh);
   const p=img.data;
 
-  // This uploaded clip already contains a detector annotation.  We use that
-  // annotation only to establish a search window, then locate the actual
-  // aircraft/drone pixels inside the window.  The old implementation used
-  // the annotation label itself, which is why the reticle was offset.
-  let minX=vw, minY=vh, maxX=-1, maxY=-1;
-  for(let y=0;y<vh;y++){
-    for(let x=0;x<vw;x++){
-      const k=(y*vw+x)*4, r=p[k], g=p[k+1], b=p[k+2];
-      // Red/magenta detector annotation used by this particular video.
-      if(r>135 && r>g*1.35 && r>b*1.05 && g<120){
-        if(x<minX)minX=x; if(x>maxX)maxX=x;
-        if(y<minY)minY=y; if(y>maxY)maxY=y;
+  clearVideoTracking();
+  let detected=false;
+  let targetX=0,targetY=0,targetW=0,targetH=0;
+
+  // The difficult clips have a bright background, so brightness alone is not
+  // reliable. Use TWO independent cues:
+  //   1) reddish/yellow drone-light appearance;
+  //   2) frame-to-frame motion of the physical moving object.
+  // Continuity from the previous frame is deliberately weighted heavily so
+  // stationary/background lights are not allowed to steal the lock.
+  const warm=new Uint8Array(vw*vh);
+  const gray=new Uint8Array(vw*vh);
+  const motion=new Uint8Array(vw*vh);
+  for(let y=1;y<vh-1;y++){
+    for(let x=1;x<vw-1;x++){
+      const i=y*vw+x, k=i*4;
+      const r=p[k],g=p[k+1],b=p[k+2];
+      const lum=0.299*r+0.587*g+0.114*b;
+      gray[i]=lum;
+      if(lum>105 && r>145 && g>65 && b<170 && r>b*1.16 && g>b*0.98){
+        warm[i]=1;
+      }
+      if(videoPrevGray){
+        const d=Math.abs(lum-videoPrevGray[i]);
+        // Ignore tiny compression noise, but retain moving silhouettes.
+        if(d>20) motion[i]=1;
       }
     }
   }
 
-  clearVideoTracking();
-  let detected = false;
-  let targetX = 0, targetY = 0, targetW = 0, targetH = 0;
+  const seen=new Uint8Array(vw*vh);
+  const qx=new Int32Array(vw*vh), qy=new Int32Array(vw*vh);
+  const comps=[];
 
-  if(maxX>=0 && maxY>=0){
-    const labelH = Math.min(24, Math.max(20, maxY-minY+1));
-    const rx = Math.max(0, minX-2);
-    const ry = Math.min(vh-1, minY + labelH);
-    const rw = Math.min(90, vw-rx);
-    const rh = Math.min(80, vh-ry);
-
-    // Drone silhouette: dark compact component against the bright sky.
-    const roiW=Math.max(1,Math.floor(rw)), roiH=Math.max(1,Math.floor(rh));
-    const gray=new Uint8Array(roiW*roiH);
-    for(let yy=0;yy<roiH;yy++){
-      for(let xx=0;xx<roiW;xx++){
-        const sx=rx+xx, sy=ry+yy, k=(sy*vw+sx)*4;
-        gray[yy*roiW+xx]=(0.299*p[k]+0.587*p[k+1]+0.114*p[k+2]);
-      }
-    }
-
-    // Connected components on a compact dark-pixel mask.
-    const seen=new Uint8Array(roiW*roiH);
-    const comps=[];
-    const qx=new Int32Array(roiW*roiH), qy=new Int32Array(roiW*roiH);
-    for(let yy=1;yy<roiH-1;yy++){
-      for(let xx=1;xx<roiW-1;xx++){
-        const idx=yy*roiW+xx;
-        if(seen[idx] || gray[idx]>=125) continue;
-        let head=0,tail=0, count=0, sxSum=0, sySum=0, cminX=xx,cmaxX=xx,cminY=yy,cmaxY=yy;
-        qx[tail]=xx; qy[tail]=yy; tail++; seen[idx]=1;
+  function collect(mask,kind){
+    for(let y=1;y<vh-1;y++){
+      for(let x=1;x<vw-1;x++){
+        const idx=y*vw+x;
+        if(seen[idx] || !mask[idx]) continue;
+        let head=0,tail=0,count=0,sxSum=0,sySum=0,minCX=x,maxCX=x,minCY=y,maxCY=y;
+        qx[tail]=x; qy[tail]=y; tail++; seen[idx]=1;
         while(head<tail){
-          const cx=qx[head], cy=qy[head]; head++; count++; sxSum+=cx; sySum+=cy;
-          if(cx<cminX)cminX=cx; if(cx>cmaxX)cmaxX=cx; if(cy<cminY)cminY=cy; if(cy>cmaxY)cmaxY=cy;
+          const cx=qx[head],cy=qy[head]; head++;
+          count++; sxSum+=cx; sySum+=cy;
+          if(cx<minCX)minCX=cx; if(cx>maxCX)maxCX=cx;
+          if(cy<minCY)minCY=cy; if(cy>maxCY)maxCY=cy;
           for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-            if(!dx && !dy) continue;
-            const nx=cx+dx, ny=cy+dy;
-            if(nx<=0 || ny<=0 || nx>=roiW-1 || ny>=roiH-1) continue;
-            const ni=ny*roiW+nx;
-            if(!seen[ni] && gray[ni]<125){ seen[ni]=1; qx[tail]=nx; qy[tail]=ny; tail++; }
+            if(!dx&&!dy) continue;
+            const nx=cx+dx,ny=cy+dy;
+            if(nx<=0||ny<=0||nx>=vw-1||ny>=vh-1) continue;
+            const ni=ny*vw+nx;
+            if(!seen[ni]&&mask[ni]){seen[ni]=1;qx[tail]=nx;qy[tail]=ny;tail++;}
           }
         }
-        const cw=cmaxX-cminX+1, ch=cmaxY-cminY+1;
-        if(count>=18 && count<=450 && cw>=5 && cw<=38 && ch>=3 && ch<=28 && cw*ch<=900){
-          comps.push({count,cx:sxSum/count+rx,cy:sySum/count+ry,w:cw,h:ch});
+        const cw=maxCX-minCX+1,ch=maxCY-minCY+1;
+        const maxSize=kind==='motion'?7000:3000;
+        if(count<3||count>maxSize||cw>180||ch>140) continue;
+        const cx=sxSum/count,cy=sySum/count;
+        const compact=count/Math.max(1,cw*ch);
+        // Measure how much warm/reddish evidence exists inside this moving box.
+        let warmCount=0, sampleCount=0;
+        const x0=Math.max(1,minCX),x1=Math.min(vw-2,maxCX);
+        const y0=Math.max(1,minCY),y1=Math.min(vh-2,maxCY);
+        for(let yy=y0;yy<=y1;yy++){
+          for(let xx=x0;xx<=x1;xx++){
+            sampleCount++;
+            if(warm[yy*vw+xx]) warmCount++;
+          }
         }
+        comps.push({kind,count,cx,cy,w:cw,h:ch,compact,warmRatio:sampleCount?warmCount/sampleCount:0});
       }
     }
+  }
 
-    if(comps.length){
-      // Prefer the compact component nearest the previous track. This keeps
-      // the tracker stable if small dark scene details enter the search ROI.
-      comps.sort((a,b)=>{
-        const da=videoLastTarget ? Math.hypot(a.cx-videoLastTarget.x,a.cy-videoLastTarget.y) : 0;
-        const db=videoLastTarget ? Math.hypot(b.cx-videoLastTarget.x,b.cy-videoLastTarget.y) : 0;
-        if(videoLastTarget && Math.abs(da-db)>5) return da-db;
-        return b.count-a.count;
-      });
-      const c=comps[0];
-      targetX=c.cx; targetY=c.cy; targetW=c.w+12; targetH=c.h+10;
+  // Warm-light candidates and motion candidates are evaluated separately.
+  // Resetting `seen` between passes is intentional: a target can be visible
+  // as warm light OR only as motion against a bright background.
+  collect(warm,'warm');
+  seen.fill(0);
+  if(videoPrevGray) collect(motion,'motion');
+
+  let predicted=null;
+  if(videoLastTarget){
+    predicted={x:videoLastTarget.x,y:videoLastTarget.y};
+    if(videoLastTarget.vx!==undefined){
+      predicted.x+=Math.max(-80,Math.min(80,videoLastTarget.vx*2.5));
+      predicted.y+=Math.max(-60,Math.min(60,videoLastTarget.vy*2.5));
+    }
+  }
+
+  comps.forEach(c=>{
+    const dist=predicted?Math.hypot(c.cx-predicted.x,c.cy-predicted.y):9999;
+    const continuity=predicted?Math.max(0,1-dist/230):0;
+    const motionScore=c.kind==='motion'?Math.min(1,c.count/180):0;
+    const warmScore=Math.min(1,c.warmRatio*5);
+    const compactScore=Math.min(1,c.compact*4);
+    const sizeScore=Math.max(0,1-Math.abs(Math.log(Math.max(1,c.count)/120))/4);
+    const edgePenalty=(c.cy>vh*0.93)?0.35:1;
+
+    if(c.kind==='warm'){
+      c.score=(0.28*warmScore)+(0.16*compactScore)+(0.48*continuity)+(0.08*sizeScore);
+    }else{
+      // On bright-background clips motion is the main discriminator.
+      c.score=(0.50*motionScore)+(0.15*compactScore)+(0.27*continuity)+(0.08*warmScore);
+    }
+    c.score*=edgePenalty;
+    if(predicted && dist>260) c.score*=0.05;
+  });
+
+  comps.sort((a,b)=>b.score-a.score);
+  if(comps.length){
+    const c=comps[0];
+    // Existing tracks may accept a lower-confidence motion measurement,
+    // while a new track needs stronger evidence to avoid background lights.
+    const threshold=videoLastTarget ? 0.14 : 0.34;
+    if(c.score>=threshold){
+      targetX=c.cx; targetY=c.cy;
+      targetW=Math.max(12,Math.min(150,c.w+10));
+      targetH=Math.max(12,Math.min(120,c.h+10));
       detected=true;
     }
   }
 
-  // Fallback: keep the last valid visual track for a short occlusion.
-  if(!detected && videoLastTarget && performance.now()-videoLastTarget.t<350){
+  // If the target briefly disappears, keep the last position only long enough
+  // for the next motion frame to reacquire it.
+  if(!detected && videoLastTarget && performance.now()-videoLastTarget.t<280){
     targetX=videoLastTarget.x; targetY=videoLastTarget.y;
     targetW=videoLastTarget.w; targetH=videoLastTarget.h;
     detected=true;
   }
 
+  // Save this frame for temporal tracking after all comparisons are complete.
+  videoPrevGray=gray;
+
   if(detected){
     const now=performance.now();
-    const imageDt=videoLastMeasurementTime ? Math.max(0.016,Math.min(0.12,(now-videoLastMeasurementTime)/1000)) : 0.033;
+    const imageDt=videoLastMeasurementTime?Math.max(0.016,Math.min(0.12,(now-videoLastMeasurementTime)/1000)):0.033;
     videoLastMeasurementTime=now;
-    // Horizontal gimbal command uses the same ±60° image-to-angle mapping
-    // used by the dashboard's gimbal vector display.
     const targetAng=(targetX/vw-0.5)*120*Math.PI/180;
-    const targetRate=videoLastTarget ? wrapAngle(targetAng-videoLastTarget.angle)/imageDt : 0;
+    const targetRate=videoLastTarget?wrapAngle(targetAng-videoLastTarget.angle)/imageDt:0;
 
-    // Use the SAME gimbal physics as the dashboard: encoder quantization,
-    // temperature/altitude torque derating, cold friction, wind disturbance,
-    // cable stiffness, inertia and adaptive PID control.  Vision supplies the
-    // measurement; physics determines the gimbal response/error.
-    const physics=stepAxis(
-      videoGimbal,
-      activeVideoScenario.temp,
-      activeVideoScenario.wind,
-      activeVideoScenario.alt,
-      true,
-      targetAng,
-      targetRate
-    );
+    const physics=stepAxis(videoGimbal,20,10,0,true,targetAng,targetRate);
+    const prevTracked=videoLastTarget;
+    const vx=prevTracked?(targetX-prevTracked.x)/imageDt:0;
+    const vy=prevTracked?(targetY-prevTracked.y)/imageDt:0;
+    videoLastTarget={x:targetX,y:targetY,w:targetW,h:targetH,t:now,angle:targetAng,vx,vy};
 
-    // For the visual overlay, put the reticle on the measured drone center.
-    // The physics result is shown as the actual gimbal tracking error rather
-    // than artificially moving the reticle away from the visible target.
-    videoLastTarget={x:targetX,y:targetY,w:targetW,h:targetH,t:now,angle:targetAng};
+    videoTrajectory.push({x:targetX/vw,y:targetY/vh});
+    if(videoTrajectory.length>MAX_VIDEO_TRAJECTORY_POINTS) videoTrajectory.shift();
+    drawVideoTrajectory();
 
-    const stageW=videoTrackCanvas.width, stageH=videoTrackCanvas.height;
-    const videoAspect=vw/vh, stageAspect=stageW/stageH;
+    const stageW=videoTrackCanvas.width,stageH=videoTrackCanvas.height;
+    const videoAspect=vw/vh,stageAspect=stageW/stageH;
     let renderW,renderH,offsetX,offsetY;
-    if(stageAspect>videoAspect){ renderH=stageH; renderW=renderH*videoAspect; offsetX=(stageW-renderW)/2; offsetY=0; }
-    else { renderW=stageW; renderH=renderW/videoAspect; offsetX=0; offsetY=(stageH-renderH)/2; }
-    const sx=renderW/vw, sy=renderH/vh;
-    const cx=offsetX+targetX*sx, cy=offsetY+targetY*sy;
-    const boxW=Math.max(34,targetW*sx), boxH=Math.max(24,targetH*sy);
+    if(stageAspect>videoAspect){renderH=stageH;renderW=renderH*videoAspect;offsetX=(stageW-renderW)/2;offsetY=0;}
+    else{renderW=stageW;renderH=renderW/videoAspect;offsetX=0;offsetY=(stageH-renderH)/2;}
+    const sx=renderW/vw,sy=renderH/vh;
+    const cx=offsetX+targetX*sx,cy=offsetY+targetY*sy;
+    const boxW=Math.max(34,targetW*sx),boxH=Math.max(24,targetH*sy);
 
     videoTrackCtx.save();
-    videoTrackCtx.strokeStyle=videoNeutralized ? '#2ee59d' : '#4dd8e6';
+    videoTrackCtx.strokeStyle=videoNeutralized?'#2ee59d':'#4dd8e6';
     videoTrackCtx.lineWidth=2;
     videoTrackCtx.strokeRect(cx-boxW/2,cy-boxH/2,boxW,boxH);
     videoTrackCtx.beginPath();
     videoTrackCtx.arc(cx,cy,11,0,Math.PI*2);
-    videoTrackCtx.moveTo(cx-28,cy); videoTrackCtx.lineTo(cx+28,cy);
-    videoTrackCtx.moveTo(cx,cy-28); videoTrackCtx.lineTo(cx,cy+28);
-    videoTrackCtx.stroke();
+    videoTrackCtx.moveTo(cx-28,cy);videoTrackCtx.lineTo(cx+28,cy);
+    videoTrackCtx.moveTo(cx,cy-28);videoTrackCtx.lineTo(cx,cy+28);videoTrackCtx.stroke();
     videoTrackCtx.font='9px monospace';
-    videoTrackCtx.fillStyle=videoNeutralized ? '#2ee59d' : '#4dd8e6';
-    videoTrackCtx.fillText(videoNeutralized ? 'DRONE · NEUTRALIZED (SIM)' : 'DRONE · TRACKED', cx+boxW/2+6, cy-7);
-    videoTrackCtx.fillText('FRAME LOCK', cx+boxW/2+6, cy+7);
+    videoTrackCtx.fillStyle=videoNeutralized?'#2ee59d':'#4dd8e6';
+    videoTrackCtx.fillText(videoNeutralized?'DRONE · NEUTRALIZED (SIM)':'DRONE · TRACKED',cx+boxW/2+6,cy-7);
+    videoTrackCtx.fillText('FRAME LOCK',cx+boxW/2+6,cy+7);
     videoTrackCtx.restore();
 
     if(!videoNeutralized){
       if(!videoLockStart) videoLockStart=now;
       const lockSeconds=(now-videoLockStart)/1000;
-      if(lockSeconds>=1.5 && physics.trackingErrorDeg<=GIMBAL_SEVERE_ERROR_DEG){
+      if(lockSeconds>=1.5&&physics.trackingErrorDeg<=GIMBAL_SEVERE_ERROR_DEG){
         videoNeutralized=true;
         videoTargetStatus.textContent='TARGET LOCKED · SIMULATED NEUTRALIZATION';
         videoTargetStatus.classList.add('neutralized');
         document.getElementById('hudNeutral').textContent='NEUTRALIZED (SIM)';
         document.getElementById('hudNeutral').className='good';
-      } else {
+      }else{
         videoTargetStatus.textContent='FRAME TRACKER: LOCKED · '+lockSeconds.toFixed(1)+' s';
       }
     }
 
-    const radarPD=radarDetectionProbability(activeVideoScenario.temp,activeVideoScenario.snow,activeVideoScenario.visibility);
-    const thermal=cameraConfidence(activeVideoScenario.temp,activeVideoScenario.snow,activeVideoScenario.visibility,activeVideoScenario.latency);
-    document.getElementById('hudTrack').textContent=videoNeutralized ? 'VIDEO DRONE · NEUTRALIZED' : 'VIDEO DRONE · TRACKED';
+    const radarPD=radarDetectionProbability(20,0,0.98);
+    const thermal=cameraConfidence(20,0,0.98,30);
+    document.getElementById('hudTrack').textContent=videoNeutralized?'VIDEO DRONE · NEUTRALIZED':'VIDEO DRONE · TRACKED';
     document.getElementById('hudError').textContent=physics.trackingErrorDeg.toFixed(3)+'° error';
     document.getElementById('hudVector').textContent=deg(targetAng).toFixed(1)+'°';
     document.getElementById('hudRadar').textContent=(radarPD*100).toFixed(1)+'%';
     document.getElementById('hudThermal').textContent=(thermal*100).toFixed(1)+'%';
     document.getElementById('hudRF').textContent='DRONE CANDIDATE';
-  } else {
+  }else{
     videoLastMeasurementTime=0;
     videoLockStart=0;
     videoTargetStatus.textContent='FRAME TRACKER: SEARCHING';
@@ -2809,7 +2895,6 @@ function processVideoFrame(){
 
   videoTrackingRAF=requestAnimationFrame(processVideoFrame);
 }
-
 function openFieldVideo(index){
   activeVideoScenario = VIDEO_SCENARIOS[index];
   videoLibraryModal.classList.remove('open');
@@ -2827,6 +2912,8 @@ function openFieldVideo(index){
   videoLockStart=0;
   videoLastTarget=null;
   videoLastMeasurementTime=0;
+  videoPrevGray=null;
+  clearVideoTrajectory();
   Object.assign(videoGimbal,{angle:0,vel:0,bias:0,integral:0,prevError:0,estBias:0});
   videoTargetStatus.textContent='FRAME TRACKER: STARTING';
   videoTargetStatus.classList.remove('neutralized');
@@ -2879,6 +2966,8 @@ function closeFieldVideo(){
   videoLockStart=0;
   videoLastTarget=null;
   videoLastMeasurementTime=0;
+  videoPrevGray=null;
+  clearVideoTrajectory();
   videoTargetStatus.classList.remove('neutralized');
   document.querySelectorAll('#tempSlider,#windSlider,#altSlider,#snowSlider,#visibilitySlider,#latencySlider,#baselineToggle').forEach(el=>el.disabled=false);
   if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
@@ -2899,6 +2988,8 @@ fieldVideo.addEventListener('ended',()=>{
     videoLockStart=0;
     videoLastTarget=null;
     videoLastMeasurementTime=0;
+    videoPrevGray=null;
+    clearVideoTrajectory();
     Object.assign(videoGimbal,{angle:0,vel:0,bias:0,integral:0,prevError:0,estBias:0});
     videoTargetStatus.textContent='FRAME TRACKER: REACQUIRING';
     videoTargetStatus.classList.remove('neutralized');
