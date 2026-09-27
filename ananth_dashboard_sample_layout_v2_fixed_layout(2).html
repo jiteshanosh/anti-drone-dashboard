@@ -1,0 +1,5161 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>High-Altitude Anti-Drone System — Environmental Simulator</title>
+
+<style>
+  .radar-pane > .title-block {
+    position: absolute !important;
+    top: 14px !important;
+    left: 108% !important;
+    transform: translateX(-50%) !important;
+    width: 100% !important;
+    text-align: center !important;
+    z-index: 30 !important;
+}
+ :root {
+    --bg-deep: #0a1420;
+    --bg-panel: rgba(15, 30, 46, 0.75);
+    --bg-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80');
+    --line: #1c3348;
+    --cyan: #4dd8e6;
+    --cyan-dim: #2a6b78;
+    --amber: #e6a94d;
+    --red: #e85c4a;
+    --green: #5cd68a;
+    --text-dim: #6f8ca3;
+    --text: #cfe8f0;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
+    font-size: 13px;
+    
+    
+    background-color: var(--bg-deep);
+    background-image: linear-gradient(rgba(10, 20, 32, 0.82), rgba(10, 20, 32, 0.82)), var(--bg-image);
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    transition: background-image 0.5s ease-in-out;
+}
+
+.radar-pane, .control-pane {
+  background: transparent; 
+  padding: 20px;
+}
+  .app {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1px;
+    background: transparent; 
+    min-height: 100vh;
+  }
+  .radar-pane {
+    background: transparent; 
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .control-pane {
+    background: transparent;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+  .title-block {
+   display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .title-block h1 {
+   font-size: 14px;
+    letter-spacing: 0.12em;
+    margin: 0;
+    color: var(--text);
+    font-weight: 600;
+  }
+  
+  .radar-canvas-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas#radar { max-width: 100%; }
+ .panel {
+  background: var(--bg-panel);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+  .panel-label {
+    color: var(--cyan);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .slider-row {
+    margin-bottom: 14px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .slider-row label span.val {
+    color: var(--text);
+    font-weight: 600;
+  }
+ 
+  .telemetry-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .telemetry-row .num {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .telemetry-row .num.warn { color: var(--amber); }
+  .telemetry-row .num.crit { color: var(--red); }
+  .telemetry-row .num.good { color: var(--green); }
+  .chart-wrap { margin-top: 6px; }
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .legend span::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .legend .l-uncomp::before { background: var(--red); }
+  .legend .l-comp::before { background: var(--green); }
+  .legend .l-active::before { background: var(--green); border-radius: 50%; width: 8px; height: 8px; }
+  .legend .l-oor::before { background: var(--red); width: 8px; height: 8px; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+  .legend .l-dead::before { background: var(--text-dim); width: 8px; height: 2px; transform: rotate(45deg); }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .status-badge.active { background: rgba(92,214,138,0.15); color: var(--green); border: 1px solid var(--green); }
+  .status-badge.degraded { background: rgba(230,169,77,0.15); color: var(--amber); border: 1px solid var(--amber); }
+  .scope-note {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+  .scope-note b { color: var(--text); }
+  .preset-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .preset-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.preset-btn {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(15, 30, 46, 0.9);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 10px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+
+.preset-btn.sea:hover { 
+  border-color: var(--green); 
+  box-shadow: 0 0 10px rgba(92, 214, 138, 0.3); 
+  color: var(--green);
+}
+.preset-btn.winter:hover { 
+  border-color: var(--cyan); 
+  box-shadow: 0 0 10px rgba(77, 216, 230, 0.3); 
+  color: var(--cyan);
+}
+.preset-btn.extreme:hover { 
+  border-color: var(--red); 
+  box-shadow: 0 0 10px rgba(232, 92, 74, 0.3); 
+  color: var(--red);
+}
+  .preset-btn:hover { border-color: var(--cyan); color: var(--text); }
+  .preset-btn.sea:hover { border-color: var(--green); }
+  .preset-btn.winter:hover { border-color: var(--amber); }
+  .preset-btn.extreme:hover { border-color: var(--red); }
+  .video-select-btn {
+    width: 100%;
+    height: 28px;
+    margin-top: 4px;
+    background: linear-gradient(180deg, rgba(24,45,61,0.95), rgba(9,25,39,0.95));
+    border: 1px solid rgba(77,216,230,0.34);
+    border-radius: 3px;
+    color: #9bc7d5;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .video-select-btn:hover {
+    color: #4dd8e6;
+    border-color: rgba(77,216,230,0.85);
+    box-shadow: 0 0 10px rgba(77,216,230,0.16);
+  }
+  .video-select-btn:active { transform: scale(0.99); }
+
+  #videoLibraryModal {
+    position: fixed; inset: 0; z-index: 9998;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(2,8,14,0.90); backdrop-filter: blur(8px);
+    padding: 24px;
+  }
+  #videoLibraryModal.open { display: flex; }
+  .video-library {
+    width: min(1100px, 96vw); max-height: 90vh; overflow: auto;
+    background: rgba(8,20,31,0.98); border: 1px solid rgba(77,216,230,0.28);
+    border-radius: 7px; box-shadow: 0 20px 70px rgba(0,0,0,.55); padding: 16px;
+  }
+  .video-library-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+  .video-library-head h2 { margin:0; font-size:13px; letter-spacing:.12em; color:#cfe8f0; }
+  .video-library-head p { margin:4px 0 0; font-size:9px; color:#6f8ca3; }
+  .video-close { background:transparent; border:1px solid #28445a; color:#9bb1c0; padding:6px 10px; border-radius:3px; cursor:pointer; font-family:inherit; }
+  .video-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .video-card { background:rgba(5,15,24,.8); border:1px solid rgba(77,216,230,.14); border-radius:5px; overflow:hidden; cursor:pointer; transition:.2s; }
+  .video-card:hover { border-color:rgba(77,216,230,.65); transform:translateY(-1px); box-shadow:0 0 14px rgba(77,216,230,.10); }
+  .video-thumb { width:100%; aspect-ratio:16/9; background:#07111b center/cover no-repeat; display:flex; align-items:center; justify-content:center; }
+  .video-play { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(77,216,230,.7); color:#4dd8e6; background:rgba(4,12,20,.72); font-size:17px; }
+  .video-card-body { padding:9px; }
+  .video-card-title { font-size:10px; font-weight:700; color:#cfe8f0; margin-bottom:6px; }
+  .video-tags { display:flex; flex-wrap:wrap; gap:4px; }
+  .video-tag { font-size:8px; color:#8da4b5; border:1px solid #28445a; padding:3px 5px; border-radius:2px; }
+
+  #videoOps { position:fixed; inset:0; z-index:10000; display:none; background:#02070d; }
+  #videoOps.open { display:grid; grid-template-columns:minmax(0, 1fr) 330px; }
+  .video-stage { position:relative; min-width:0; background:#000; display:flex; align-items:center; justify-content:center; }
+  #fieldVideo { width:100%; height:100%; object-fit:contain; background:#000; display:block; }
+  #videoTrackCanvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .video-overlay { position:absolute; inset:0; pointer-events:none; border:1px solid rgba(77,216,230,.16); }
+  .video-crosshair { position:absolute; left:50%; top:50%; width:90px; height:90px; transform:translate(-50%,-50%); border:1px solid rgba(77,216,230,.20); border-radius:50%; box-shadow:0 0 20px rgba(77,216,230,.08); opacity:.35; }
+  .video-crosshair:before,.video-crosshair:after { content:''; position:absolute; background:#4dd8e6; opacity:.45; }
+  .video-crosshair:before { width:120px; height:1px; left:-16px; top:44px; }
+  .video-crosshair:after { height:120px; width:1px; top:-16px; left:44px; }
+  .video-target-status { position:absolute; left:14px; top:14px; padding:5px 8px; border:1px solid rgba(77,216,230,.35); background:rgba(2,10,16,.72); color:#4dd8e6; font-size:9px; letter-spacing:.08em; pointer-events:none; }
+  .video-target-status.neutralized { border-color:rgba(46,229,157,.55); color:#2ee59d; }
+  #videoCvCanvas { display:none; }
+  /* The reticle is drawn by the frame tracker at the detected drone center. */
+  .video-crosshair { display:none; }
+  .video-hud { padding:14px; background:rgba(7,17,27,.98); border-left:1px solid rgba(77,216,230,.25); overflow:auto; }
+  .video-hud h2 { margin:0 0 4px; font-size:12px; letter-spacing:.12em; color:#4dd8e6; }
+  .video-hud .mode { font-size:8px; color:#6f8ca3; margin-bottom:12px; }
+  .hud-section { border:1px solid rgba(77,216,230,.14); border-radius:4px; padding:9px; margin-bottom:8px; background:rgba(10,24,38,.55); }
+  .hud-section-title { color:#8da4b5; font-size:8px; letter-spacing:.12em; margin-bottom:7px; }
+  .hud-row { display:flex; justify-content:space-between; gap:10px; margin:5px 0; font-size:9px; color:#7893a7; }
+  .hud-row b { color:#cfe8f0; }
+  .hud-row b.good { color:#2ee59d; }
+  .hud-row b.warn { color:#ffb830; }
+  .hud-close { width:100%; height:28px; margin-top:3px; background:transparent; border:1px solid #28445a; color:#9bb1c0; border-radius:3px; font-family:inherit; cursor:pointer; }
+  .hud-close:hover { border-color:#4dd8e6; color:#4dd8e6; }
+  .video-trajectory-panel { margin-top:7px; border:1px solid rgba(77,216,230,.14); border-radius:4px; padding:6px; background:rgba(10,24,38,.55); }
+  .video-trajectory-title { color:#8da4b5; font-size:8px; letter-spacing:.12em; margin-bottom:5px; }
+  #videoTrajectoryCanvas { width:100%; height:82px; display:block; background:rgba(2,8,14,.75); border:1px solid rgba(77,216,230,.10); }
+  @media (max-width: 900px) { .video-grid{grid-template-columns:1fr 1fr;} #videoOps.open{grid-template-columns:1fr;} .video-hud{position:absolute;right:0;top:0;bottom:0;width:min(330px,88vw);z-index:2;box-shadow:-10px 0 30px rgba(0,0,0,.5);} }
+
+  .reset-btn {
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    padding: 8px 6px;
+    border-radius: 2px;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .reset-btn:hover { border-color: var(--cyan); color: var(--text); }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-row input { cursor: pointer; }
+  .improvement-banner {
+    background: rgba(92,214,138,0.08);
+    border: 1px solid var(--green);
+    border-radius: 2px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .improvement-banner .big {
+    color: var(--green);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .improvement-banner .lbl {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+
+.num {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: right;
+  background: transparent !important; 
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: #ffb830 !important; 
+}
+
+
+.num.good {
+  color: #2ee59d !important; 
+}
+.num.warn {
+  color: #ffb830 !important; 
+}
+.num.crit {
+  color: #ff5252 !important; 
+}
+
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+.status-badge.degraded {
+  background: rgba(255, 184, 48, 0.15);
+  color: #ffb830;
+  border: 1px solid rgba(255, 184, 48, 0.4);
+}
+.status-badge.active {
+  background: rgba(46, 229, 157, 0.15);
+  color: #2ee59d;
+  border: 1px solid rgba(46, 229, 157, 0.4);
+}
+
+
+.chart-wrap {
+  width: 100%;
+  margin-top: 8px;
+  background: rgba(5, 14, 24, 0.4);
+  border: 1px solid rgba(77, 216, 230, 0.15);
+  border-radius: 4px;
+  padding: 0;                   
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.chart-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 80px !important;
+}
+
+
+.control-pane {
+  gap: 8px;
+}
+
+.panel {
+  padding: 9px 5px;
+  border-radius: 5px;
+  background: rgba(10, 24, 38, 0.82);
+  border: 1px solid rgba(77, 216, 230, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.025),
+    0 4px 14px rgba(0,0,0,0.18);
+}
+
+
+
+
+.panel-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  margin-bottom: 9px;
+  color: #4dd8e6;
+}
+
+
+
+
+.preset-row {
+  display: flex;
+  gap: 7px;
+  flex-wrap: nowrap;
+  margin-bottom: 10px !important;
+}
+
+.preset-btn {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+
+  height: 28px;
+  padding: 0 6px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(24, 45, 61, 0.95),
+    rgba(9, 25, 39, 0.95)
+  );
+
+  border: 1px solid rgba(77, 216, 230, 0.22);
+  border-radius: 3px;
+
+  color: #8da4b5;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  cursor: pointer;
+  text-align: center;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 2px 5px rgba(0,0,0,0.25);
+}
+
+
+
+
+.preset-btn::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 3px;
+  height: 1px;
+  opacity: 0;
+
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+
+  transition: opacity 0.2s ease;
+}
+
+
+
+
+.preset-btn.sea:hover,
+.preset-btn.sea.active {
+  color: #5cd68a;
+  border-color: rgba(92,214,138,0.75);
+
+  background: linear-gradient(
+    180deg,
+    rgba(92,214,138,0.16),
+    rgba(9,25,39,0.95)
+  );
+
+  box-shadow:
+    0 0 10px rgba(92,214,138,0.18),
+    inset 0 0 8px rgba(92,214,138,0.05);
+}
+
+.preset-btn.sea:hover::after,
+.preset-btn.sea.active::after {
+  opacity: 1;
+}
+
+
+
+
+.preset-btn.winter:hover,
+.preset-btn.winter.active {
+  color: #4dd8e6;
+  border-color: rgba(77,216,230,0.8);
+
+  background: linear-gradient(
+    180deg,
+    rgba(77,216,230,0.16),
+    rgba(9,25,39,0.95)
+  );
+
+  box-shadow:
+    0 0 10px rgba(77,216,230,0.2),
+    inset 0 0 8px rgba(77,216,230,0.05);
+}
+
+.preset-btn.winter:hover::after,
+.preset-btn.winter.active::after {
+  opacity: 1;
+}
+
+
+
+.preset-btn.extreme:hover,
+.preset-btn.extreme.active {
+  color: #ffb830;
+  border-color: rgba(255,184,48,0.8);
+
+  background: linear-gradient(
+    180deg,
+    rgba(255,184,48,0.15),
+    rgba(9,25,39,0.95)
+  );
+
+  box-shadow:
+    0 0 10px rgba(255,184,48,0.18),
+    inset 0 0 8px rgba(255,184,48,0.05);
+}
+
+.preset-btn.extreme:hover::after,
+.preset-btn.extreme.active::after {
+  opacity: 1;
+}
+
+
+
+.preset-btn:active {
+  transform: scale(0.98);
+}
+
+
+
+
+.slider-row {
+  margin-bottom: 11px;
+}
+
+.slider-row:last-child {
+  margin-bottom: 0;
+}
+
+.slider-row label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 10px;
+  letter-spacing: 0.03em;
+
+  color: #7893a7;
+  margin-bottom: 6px;
+}
+
+.slider-row label span.val {
+  color: #cfe8f0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+
+.slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+
+  width: 100%;
+  height: 4px;
+
+  margin: 0;
+  padding: 0;
+
+  border: none;
+  outline: none;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.35),
+      rgba(77,216,230,0.08)
+    );
+
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.7),
+    0 0 3px rgba(77,216,230,0.08);
+
+  cursor: pointer;
+}
+
+
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.42),
+      rgba(77,216,230,0.12)
+    );
+
+  border: none;
+}
+
+
+.slider-row input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.42),
+      rgba(77,216,230,0.12)
+    );
+
+  border: none;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+
+  width: 13px;
+  height: 13px;
+
+  margin-top: -4.5px;
+
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #72f0fa 35%,
+      #4dd8e6 70%,
+      #2ba9b8 100%
+    );
+
+  border: 1px solid #dfffff;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 4px rgba(77,216,230,0.9),
+    0 0 10px rgba(77,216,230,0.55),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+
+  box-shadow:
+    0 0 5px rgba(77,216,230,1),
+    0 0 14px rgba(77,216,230,0.8),
+    inset 0 1px 2px rgba(255,255,255,0.9);
+}
+
+
+
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #72f0fa 35%,
+      #4dd8e6 70%,
+      #2ba9b8 100%
+    );
+
+  border: 1px solid #dfffff;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 4px rgba(77,216,230,0.9),
+    0 0 10px rgba(77,216,230,0.55);
+}
+
+
+
+
+#tempSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,184,48,0.55),
+      rgba(255,184,48,0.10)
+    );
+}
+
+#tempSlider::-webkit-slider-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #fff7d6,
+      #ffd166,
+      #ffb830,
+      #e68a18
+    );
+
+  border-color: #fff1bd;
+
+  box-shadow:
+    0 0 4px rgba(255,184,48,1),
+    0 0 12px rgba(255,184,48,0.65),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+}
+
+#tempSlider::-moz-range-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,184,48,0.55),
+      rgba(255,184,48,0.10)
+    );
+}
+
+#tempSlider::-moz-range-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #fff7d6,
+      #ffd166,
+      #ffb830,
+      #e68a18
+    );
+
+  border-color: #fff1bd;
+
+  box-shadow:
+    0 0 4px rgba(255,184,48,1),
+    0 0 12px rgba(255,184,48,0.65);
+}
+
+
+
+
+#windSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.55),
+      rgba(77,216,230,0.10)
+    );
+}
+
+#windSlider::-moz-range-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(77,216,230,0.55),
+      rgba(77,216,230,0.10)
+    );
+}
+
+
+#altSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(92,214,138,0.55),
+      rgba(92,214,138,0.10)
+    );
+}
+
+#altSlider::-webkit-slider-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #eafff1,
+      #75f0a5,
+      #5cd68a,
+      #32a965
+    );
+
+  border-color: #d7ffe5;
+
+  box-shadow:
+    0 0 4px rgba(92,214,138,1),
+    0 0 12px rgba(92,214,138,0.65),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+}
+
+#altSlider::-moz-range-track {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(92,214,138,0.55),
+      rgba(92,214,138,0.10)
+    );
+}
+
+#altSlider::-moz-range-thumb {
+  background:
+    linear-gradient(
+      135deg,
+      #eafff1,
+      #75f0a5,
+      #5cd68a,
+      #32a965
+    );
+
+  border-color: #d7ffe5;
+
+  box-shadow:
+    0 0 4px rgba(92,214,138,1),
+    0 0 12px rgba(92,214,138,0.65);
+}
+
+
+.improvement-banner {
+  padding: 7px 10px;
+  min-height: 55px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(92,214,138,0.09),
+      rgba(20,45,50,0.35)
+    );
+
+  border: 1px solid rgba(92,214,138,0.55);
+
+  box-shadow:
+    0 0 12px rgba(92,214,138,0.06),
+    inset 0 0 12px rgba(92,214,138,0.025);
+}
+
+.improvement-banner .big {
+  font-size: 21px;
+  line-height: 22px;
+
+  text-shadow:
+    0 0 8px rgba(92,214,138,0.35);
+}
+
+.improvement-banner .lbl {
+  font-size: 8px;
+  margin-top: 2px;
+}
+
+
+.telemetry-row {
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.telemetry-row .num {
+  font-size: 11px;
+}
+
+
+.chart-wrap {
+  margin-top: 5px;
+
+  height: 78px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3,12,21,0.75),
+      rgba(8,20,31,0.5)
+    );
+
+  border: 1px solid rgba(77,216,230,0.14);
+
+  box-shadow:
+    inset 0 0 10px rgba(0,0,0,0.25);
+}
+
+.chart-wrap canvas {
+  height: 76px !important;
+}
+
+
+.toggle-row {
+  gap: 6px;
+  font-size: 9px;
+}
+
+.toggle-row input {
+  accent-color: #4dd8e6;
+  width: 13px;
+  height: 13px;
+}
+
+
+
+.reset-btn {
+  width: 100%;
+  height: 26px;
+
+  margin-top: 8px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(19,39,54,0.9),
+      rgba(8,22,35,0.95)
+    );
+
+  border: 1px solid rgba(77,216,230,0.22);
+  border-radius: 3px;
+
+  color: #8da4b5;
+
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.reset-btn:hover {
+  color: #4dd8e6;
+  border-color: rgba(77,216,230,0.75);
+
+  box-shadow:
+    0 0 10px rgba(77,216,230,0.15),
+    inset 0 0 8px rgba(77,216,230,0.04);
+}
+
+
+
+.status-badge {
+  font-size: 8px;
+  padding: 3px 6px;
+
+  letter-spacing: 0.06em;
+
+  box-shadow:
+    0 0 5px rgba(255,184,48,0.08);
+}
+
+
+.control-pane > .title-block {
+  margin-bottom: 2px;
+  padding-bottom: 6px;
+}
+
+.control-pane > .title-block h1 {
+  font-size: 13px;
+}
+
+
+
+@media (max-width: 900px) {
+
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .control-pane {
+    max-height: none;
+  }
+
+  .preset-btn {
+    font-size: 8px;
+  }
+}
+
+
+
+@media (min-width: 901px) {
+
+  .app {
+    grid-template-columns: 46.5% 53.5%;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .radar-pane {
+    min-width: 0;
+    height: 100vh;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .radar-canvas-wrap {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  canvas#radar {
+    width: min(68vh, 100%);
+    height: min(68vh, 100%);
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  
+  .control-pane {
+    box-sizing: border-box;
+    height: 100vh;
+    min-height: 0;
+    padding: 8px 8px 8px 6px;
+    gap: 8px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1.08fr;
+    grid-template-rows: 28px 160px 160px 55px 155px 160px;
+    grid-template-areas:
+      "title title"
+      "environment radar"
+      "environment thermal"
+      "banner trajectories"
+      "gimbal trajectories"
+      "gimbal neutralization";
+    align-content: start;
+  }
+
+  .control-pane > .title-block {
+    grid-area: title;
+    margin: 0;
+    padding: 0 0 5px;
+    min-height: 0;
+  }
+
+  .control-pane > .title-block h1 {
+    font-size: 12px;
+  }
+
+  .control-pane > .panel,
+  .control-pane > .improvement-banner {
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+ 
+  .control-pane > .panel:nth-child(2) {
+    grid-area: environment;
+    overflow: hidden;
+  }
+
+  .control-pane > .improvement-banner:nth-child(3) {
+    grid-area: banner;
+    min-height: 0;
+    padding: 6px 8px;
+  }
+
+  .control-pane > .panel:nth-child(4) {
+    grid-area: gimbal;
+    overflow: hidden;
+    min-height: 0;
+    align-self: stretch;
+  }
+
+  .control-pane > .panel:nth-child(5) {
+    grid-area: radar;
+    overflow: hidden;
+    height: 72px;
+    align-self: start;
+    transform: translateY(135px);
+  }
+
+  .control-pane > .panel:nth-child(6) {
+    grid-area: thermal;
+    overflow: hidden;
+    height: 72px;
+    align-self: start;
+    transform: translateY(px);
+  }
+
+  .control-pane > .trajectory-panel:nth-child(8) {
+    grid-area: trajectories;
+    overflow: hidden;
+    min-height: 0;
+    height: 270px;
+    align-self: start;
+    transform: translateY(-176px);
+  }
+
+  .control-pane > .panel:nth-child(9) {
+    grid-area: neutralization;
+    overflow: hidden;
+    min-height: 0;
+    height: 205px;
+    align-self: start;
+    transform: translateY(-124px);
+  }
+
+  .panel {
+    padding: 10px 10px;
+    border-radius: 4px;
+  }
+
+  .panel-label {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .preset-row {
+    gap: 5px;
+    margin-bottom: 8px !important;
+  }
+
+  .preset-btn {
+    height: 26px;
+    font-size: 8px;
+    padding: 0 4px;
+  }
+
+  .slider-row {
+    margin-bottom: 8px;
+  }
+
+  .slider-row label {
+    font-size: 9px;
+    margin-bottom: 5px;
+  }
+
+  .slider-row label span.val {
+    font-size: 9px;
+  }
+
+  .slider-row input[type="range"] {
+    height: 4px;
+  }
+
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+  }
+
+  .slider-row input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+  }
+
+  .improvement-banner .big {
+    font-size: 19px;
+    line-height: 20px;
+  }
+
+  .improvement-banner .lbl {
+    font-size: 7px;
+  }
+
+  .telemetry-row {
+    margin-bottom: 6px;
+    font-size: 10px;
+  }
+
+  .telemetry-row .num {
+    font-size: 11px;
+  }
+
+  .chart-wrap {
+    height: 68px;
+    margin-top: 6px;
+  }
+
+  .chart-wrap canvas {
+    height: 66px !important;
+  }
+
+  .toggle-row {
+    gap: 4px;
+    font-size: 8px;
+  }
+
+  .toggle-row input {
+    width: 12px;
+    height: 12px;
+  }
+
+  .trajectory-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: calc(100% - 48px);
+    min-height: 0;
+    gap: 5px;
+  }
+
+  .trajectory-meta {
+    margin-top: 5px;
+    font-size: 8px;
+  }
+
+  .status-badge {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+
+  .reset-btn {
+    height: 27px;
+    margin-top: 4px;
+    font-size: 9px;
+    padding: 0 5px;
+  }
+}
+
+
+
+.trajectory-panel {
+  padding-bottom: 8px;
+}
+
+.trajectory-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  height: 190px;
+}
+
+.trajectory-card {
+  border: 1px solid rgba(77,216,230,0.16);
+  border-radius: 3px;
+  background: rgba(5,15,24,0.38);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.trajectory-card-header {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  box-sizing: border-box;
+  color: var(--text-dim);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(77,216,230,0.10);
+}
+
+.trajectory-card-header b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.trajectory-card canvas {
+  width: 100%;
+  height: calc(100% - 22px);
+  display: block;
+}
+
+.trajectory-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--text-dim);
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+}
+
+.trajectory-meta b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.trajectory-meta b.good {
+  color: var(--green);
+}
+
+.trajectory-meta b.warn {
+  color: var(--amber);
+}
+
+.trajectory-meta b.crit {
+  color: var(--red);
+}
+
+
+#snowSlider::-webkit-slider-runnable-track, #visibilitySlider::-webkit-slider-runnable-track, #latencySlider::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, rgba(77,216,230,0.55), rgba(77,216,230,0.10));
+}
+#snowSlider::-moz-range-track, #visibilitySlider::-moz-range-track, #latencySlider::-moz-range-track {
+  background: linear-gradient(90deg, rgba(77,216,230,0.55), rgba(77,216,230,0.10));
+}
+
+/* ===== ADDITIVE ROBOFLOW LIVE LINK — existing dashboard styles untouched ===== */
+#yoloLivePanel{position:relative;left:auto;top:auto;right:auto;bottom:auto;z-index:20;width:min(520px,100%);margin:18px auto 12px;padding:10px 12px;border:1px solid rgba(77,216,230,.22);border-radius:5px;background:rgba(5,15,24,.94);backdrop-filter:blur(8px);box-shadow:0 8px 30px rgba(0,0,0,.35);font-family:'JetBrains Mono','Consolas','SF Mono',monospace;}
+#yoloLivePanel .yolo-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;color:var(--cyan);font-size:10px;letter-spacing:.12em;}
+#yoloLivePanel .yolo-state{font-size:8px;padding:2px 5px;border:1px solid rgba(111,140,163,.35);color:var(--text-dim);}
+#yoloLivePanel .yolo-state.online{color:var(--green);border-color:rgba(92,214,138,.35);}
+#yoloLivePanel .yolo-state.tracking{color:var(--cyan);border-color:rgba(77,216,230,.35);}
+#yoloLivePanel .yolo-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+#yoloLivePanel .yolo-cell{border:1px solid rgba(77,216,230,.10);background:rgba(2,8,14,.75);padding:6px;}
+#yoloLivePanel .yolo-k{font-size:7px;color:var(--text-dim);margin-bottom:3px;}
+#yoloLivePanel .yolo-v{font-size:11px;color:var(--text);font-weight:700;}
+#yoloLivePanel .yolo-actions{display:flex;gap:6px;margin-top:7px;}
+#yoloLivePanel button{height:25px;padding:0 9px;border:1px solid rgba(77,216,230,.30);background:rgba(8,24,36,.90);color:var(--cyan);font:700 8px 'JetBrains Mono','Consolas',monospace;letter-spacing:.08em;cursor:pointer;}
+#yoloLivePanel button:hover{background:rgba(77,216,230,.10);}
+#yoloLivePanel .yolo-note{margin-top:6px;font-size:7px;line-height:1.45;color:var(--text-dim);}
+@media(max-width:900px){#yoloLivePanel{position:relative;left:auto;top:auto;bottom:auto;width:calc(100% - 16px);margin:8px;}}
+#yoloLivePanel .yolo-live-title{font-size:7px;color:var(--text-dim);letter-spacing:.12em;margin:8px 0 5px;}
+#yoloLivePanel .yolo-live-wrap{position:relative;width:100%;aspect-ratio:5/4;background:#000;border:1px solid rgba(77,216,230,.12);overflow:hidden;}
+#yoloLiveCanvas{width:100%;height:100%;display:block;}
+#yoloLivePanel .yolo-track-list{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px;max-height:94px;overflow:auto;}
+#yoloLivePanel .yolo-track-item{display:flex;align-items:center;gap:5px;min-width:0;padding:4px 5px;border:1px solid rgba(77,216,230,.08);background:rgba(2,8,14,.72);font-size:7px;color:var(--text);}
+#yoloLivePanel .yolo-track-dot{width:7px;height:7px;min-width:7px;border-radius:50%;box-shadow:0 0 7px currentColor;}
+#yoloLivePanel .yolo-track-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#yoloLivePanel .yolo-track-item.selected{border-color:rgba(255,255,255,.30);}
+
+
+/* STEP 6 + STEP 7 additions */
+/* Temporary placement: keep the new Step 6/7 panel out of Dashboard 20 grid slots
+   so the original trajectory + neutralization layout remains intact. */
+.estimation-panel {
+  position: fixed !important;
+  top: 190px !important;
+  right: 8px !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: min(520px, 42vw) !important;
+  height: 158px !important;
+  z-index: 15000 !important;
+  padding-bottom: 8px;
+  background: rgba(10,24,38,.96);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgba(0,0,0,.45);
+}
+
+.estimation-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:6px;
+}
+.estimation-card {
+  border:1px solid rgba(77,216,230,.16); border-radius:3px;
+  background:rgba(5,15,24,.38); overflow:hidden; min-width:0;
+}
+.estimation-card-header {
+  height:22px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 6px; box-sizing:border-box; color:var(--text-dim); font-size:7px;
+  letter-spacing:.04em; border-bottom:1px solid rgba(77,216,230,.10);
+}
+.estimation-card-header b { color:var(--text); font-weight:600; }
+.estimation-card canvas { width:100%; height:135px; display:block; }
+.estimation-meta {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-top:6px;
+  color:var(--text-dim); font-size:7.5px; letter-spacing:.03em;
+}
+.estimation-meta span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.estimation-meta b { color:var(--text); font-weight:600; }
+@media (max-width:900px) {
+  .estimation-grid { grid-template-columns:1fr; }
+}
+
+
+
+
+/* ================================================================
+   FINAL SCROLLABLE LAYOUT FIX
+   No simulation/physics/YOLO/EKF/Doppler logic changed.
+   ================================================================ */
+html { min-height: 100%; }
+body {
+  min-height: 100vh;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-width: 901px) {
+  .app {
+    display: grid;
+    grid-template-columns: 46.5% 53.5%;
+    gap: 1px;
+    min-height: 100vh;
+    height: auto !important;
+    overflow: visible !important;
+    align-items: start;
+  }
+
+  .radar-pane {
+    position: sticky;
+    top: 0;
+    height: 100vh !important;
+    min-height: 100vh;
+    padding: 8px;
+    overflow: hidden !important;
+    align-self: start;
+  }
+
+  .radar-canvas-wrap {
+    min-height: 0;
+    height: calc(100vh - 90px);
+    flex: none;
+  }
+
+  canvas#radar {
+    width: min(68vh, 100%);
+    height: min(68vh, 100%);
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .control-pane {
+    box-sizing: border-box;
+    height: auto !important;
+    min-height: 100vh;
+    padding: 8px 8px 40px 6px;
+    gap: 8px;
+    overflow: visible !important;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows:
+      28px
+      300px
+      100px
+      65px
+      300px
+      340px
+      280px
+      220px;
+    grid-template-areas:
+      "title title"
+      "environment environment"
+      "radar thermal"
+      "banner banner"
+      "gimbal gimbal"
+      "estimation estimation"
+      "trajectories trajectories"
+      "neutralization neutralization";
+    align-content: start;
+  }
+
+  .control-pane > .title-block { grid-area: title; }
+  .control-pane > .panel:nth-child(2) { grid-area: environment; overflow: visible; }
+  .control-pane > .improvement-banner:nth-child(3) { grid-area: banner; }
+  .control-pane > .panel:nth-child(4) { grid-area: gimbal; overflow: hidden; }
+  .control-pane > .panel:nth-child(5) {
+    grid-area: radar;
+    height: auto !important;
+    overflow: hidden;
+    transform: none !important;
+  }
+  .control-pane > .panel:nth-child(6) {
+    grid-area: thermal;
+    height: auto !important;
+    overflow: hidden;
+    transform: none !important;
+  }
+  .control-pane > .estimation-panel {
+    grid-area: estimation;
+    position: static !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0;
+    z-index: auto !important;
+    overflow: hidden;
+  }
+  .control-pane > .trajectory-panel {
+    grid-area: trajectories;
+    position: static !important;
+    height: auto !important;
+    min-height: 0;
+    overflow: hidden;
+    transform: none !important;
+  }
+  .control-pane > .panel:nth-child(9) {
+    grid-area: neutralization;
+    height: auto !important;
+    min-height: 0;
+    overflow: hidden;
+    transform: none !important;
+  }
+
+  .estimation-grid { min-height: 0; }
+  .estimation-card canvas { height: 240px !important; }
+  .trajectory-grid { height: 215px; }
+}
+
+@media (max-width: 900px) {
+  body { overflow-y: auto; }
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .radar-pane {
+    position: relative;
+    height: auto !important;
+    min-height: 70vh;
+    overflow: visible !important;
+  }
+  .radar-canvas-wrap { height: auto; min-height: 60vh; }
+  .control-pane {
+    height: auto !important;
+    overflow: visible !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 30px;
+  }
+  .estimation-panel {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    inset: auto !important;
+  }
+}
+
+</style>
+<style>
+/* ===== ADDITIVE STEPS 8 + 9 + 10 ===== */
+.s8910-grid{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:8px;margin-top:8px}
+.s8910-card{min-height:145px;padding:9px 10px}
+.s8910-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px}
+.s8910-head b{color:#4dd8e6;font-size:10px;letter-spacing:.08em}
+.s8910-head span{font-size:8px;color:#6f8ca3}
+.fusion-row,.weight-row,.hw-row{display:grid;grid-template-columns:72px 1fr 42px;align-items:center;gap:7px;margin:5px 0;font-size:8px}
+.fusion-row label,.weight-row label,.hw-row label{color:#cfe8f0}
+.mini-bar{height:5px;border:1px solid rgba(77,216,230,.14);background:rgba(77,216,230,.05);overflow:hidden}
+.mini-bar>i{display:block;height:100%;width:0%;background:#4dd8e6;box-shadow:0 0 7px rgba(77,216,230,.35)}
+.fusion-row em,.weight-row em,.hw-row em{font-style:normal;text-align:right;color:#cfe8f0}
+.fusion-decision{margin-top:7px;padding-top:6px;border-top:1px solid rgba(77,216,230,.12);display:flex;justify-content:space-between;gap:8px;font-size:9px}
+.fusion-decision strong{color:#2ee59d}
+.hw-online{color:#2ee59d}.hw-wait{color:#6f8ca3}.hw-warn{color:#ffb830}
+.s8910-note{margin-top:6px;color:#6f8ca3;font-size:7px;line-height:1.35}
+@media(max-width:1050px){.s8910-grid{grid-template-columns:1fr}}
+</style>
+
+<style id="sample-layout-v2">
+/* ================================================================
+   SAMPLE LAYOUT V2 — VISUAL/STRUCTURAL ONLY
+   No physics, target motion, tracking, EKF, Doppler or sensor
+   calculations are changed by this block.
+   ================================================================ */
+html,body{min-height:100%;}
+body{overflow-x:hidden;overflow-y:auto;}
+
+@media (min-width:901px){
+  .app{
+    display:grid !important;
+    grid-template-columns:minmax(0,56%) minmax(0,44%) !important;
+    grid-template-rows:30px 290px 55px 48px 150px 250px !important;
+    grid-template-areas:
+      "radar title"
+      "radar environment"
+      "radar sensors"
+      "radar banner"
+      "radar gimbal"
+      "estimation lower" !important;
+    gap:8px !important;
+    min-height:0 !important;
+    height:auto !important;
+    padding:8px !important;
+    align-items:stretch !important;
+    overflow:visible !important;
+  }
+
+  .radar-pane{
+    grid-area:radar !important;
+    position:relative !important;
+    height:auto !important;
+    min-height:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    align-self:stretch !important;
+  }
+  .radar-pane>.title-block{
+    height:30px !important;
+    margin:0 !important;
+    padding:0 8px 6px !important;
+    box-sizing:border-box;
+  }
+  .radar-pane>.title-block h1{font-size:14px !important;}
+  .radar-pane>.title-block .sub{font-size:10px !important;}
+  .radar-canvas-wrap{
+    height:calc(100% - 68px) !important;
+    min-height:0 !important;
+    flex:none !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+  canvas#radar{
+    width:min(61vh,92%) !important;
+    height:min(61vh,92%) !important;
+    max-width:100% !important;
+    max-height:100% !important;
+  }
+  .radar-pane>.legend{font-size:8px !important;margin-top:3px !important;gap:10px !important;}
+
+  .control-pane{display:contents !important;}
+  .control-pane>.title-block{
+    grid-area:title !important;
+    margin:0 !important;
+    padding:0 0 6px !important;
+    min-width:0 !important;
+  }
+  .control-pane>.title-block h1{font-size:13px !important;}
+
+  .control-pane>.panel:nth-child(2){
+    grid-area:environment !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    height:auto !important;
+    overflow:hidden !important;
+    padding:8px 10px !important;
+  }
+  .control-pane>.panel:nth-child(2) .preset-row{margin-bottom:8px !important;gap:6px !important;}
+  .control-pane>.panel:nth-child(2) .preset-btn{height:26px !important;font-size:8px !important;}
+  .control-pane>.panel:nth-child(2) .slider-row{margin-bottom:8px !important;}
+  .control-pane>.panel:nth-child(2) .slider-row label{font-size:9px !important;margin-bottom:4px !important;}
+
+  /* Sensor cards sit side-by-side like the sample. */
+  .control-pane>.panel:nth-child(5){grid-area:sensors !important;justify-self:start !important;width:calc(50% - 4px) !important;}
+  .control-pane>.panel:nth-child(6){grid-area:sensors !important;justify-self:end !important;width:calc(50% - 4px) !important;}
+  .control-pane>.panel:nth-child(5),.control-pane>.panel:nth-child(6){
+    min-width:0 !important;min-height:0 !important;height:auto !important;overflow:hidden !important;padding:8px 10px !important;
+  }
+  .control-pane>.panel:nth-child(5) .panel-label,.control-pane>.panel:nth-child(6) .panel-label{margin-bottom:4px !important;}
+  .control-pane>.panel:nth-child(5) .telemetry-row,.control-pane>.panel:nth-child(6) .telemetry-row{margin-bottom:0 !important;font-size:9px !important;}
+
+  .control-pane>.improvement-banner{
+    grid-area:banner !important;min-width:0 !important;min-height:0 !important;height:auto !important;padding:4px 10px !important;
+    display:flex !important;align-items:center !important;justify-content:space-between !important;text-align:right !important;
+  }
+  .control-pane>.improvement-banner .big{font-size:20px !important;}
+  .control-pane>.improvement-banner .lbl{font-size:8px !important;margin:0 !important;}
+
+  .control-pane>.panel:nth-child(4){
+    grid-area:gimbal !important;min-width:0 !important;min-height:0 !important;height:auto !important;overflow:hidden !important;padding:8px 10px !important;
+  }
+  .control-pane>.panel:nth-child(4) .panel-label{margin-bottom:5px !important;}
+  .control-pane>.panel:nth-child(4) .telemetry-row{margin-bottom:2px !important;font-size:8.5px !important;}
+  .control-pane>.panel:nth-child(4) .telemetry-row .num{font-size:9px !important;}
+  .control-pane>.panel:nth-child(4) .chart-wrap{display:none !important;}
+
+  /* Lower-left estimation block. */
+  .control-pane>.estimation-panel{
+    grid-area:estimation !important;position:static !important;inset:auto !important;width:auto !important;height:auto !important;
+    min-width:0 !important;min-height:0 !important;overflow:hidden !important;padding:8px 10px !important;z-index:auto !important;
+  }
+  .estimation-grid{height:190px !important;min-height:0 !important;gap:7px !important;}
+  .estimation-card canvas{height:166px !important;}
+
+  /* Lower-right trajectory block + separate searching strip. */
+  .control-pane>.trajectory-panel{
+    grid-area:lower !important;position:static !important;justify-self:start !important;width:calc(100% - 182px) !important;
+    height:auto !important;min-width:0 !important;min-height:0 !important;overflow:hidden !important;padding:8px 10px !important;
+  }
+  .trajectory-grid{height:176px !important;gap:5px !important;}
+  .trajectory-card-header{font-size:7px !important;}
+  .control-pane>.search-status-panel{
+    grid-area:lower !important;justify-self:end !important;width:174px !important;height:auto !important;min-width:0 !important;
+    min-height:0 !important;overflow:hidden !important;padding:8px 9px !important;
+  }
+  .search-stat{display:flex;justify-content:space-between;gap:7px;padding:5px 0;border-bottom:1px solid rgba(77,216,230,.10);font-size:7.5px;color:var(--text-dim);}
+  .search-stat b{color:var(--cyan);font-size:8.5px;}
+  .search-stat b.good{color:#2ee59d;}
+  .auto-scan-mark{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--text-dim);font-size:7.5px;letter-spacing:.08em;}
+  .scan-ring{width:30px;height:30px;border:1px solid rgba(77,216,230,.45);border-radius:50%;position:relative;}
+  .scan-ring:before,.scan-ring:after{content:"";position:absolute;left:50%;top:50%;background:rgba(77,216,230,.55);transform:translate(-50%,-50%);}
+  .scan-ring:before{width:21px;height:1px}.scan-ring:after{width:1px;height:21px}
+  .scan-ring i{position:absolute;width:7px;height:7px;left:50%;top:50%;transform:translate(-50%,-50%);border:1px solid #4dd8e6;border-radius:50%;box-shadow:0 0 7px rgba(77,216,230,.7)}
+
+  /* HPM response-zone telemetry is shown over the tactical view, as in sample. */
+  .hpm-zone-panel{
+    position:absolute !important;top:10px !important;left:8px !important;right:auto !important;width:280px !important;z-index:20 !important;
+    padding:7px 9px !important;background:rgba(4,18,29,.42) !important;border:0 !important;border-radius:2px !important;box-shadow:none !important;backdrop-filter:none !important;
+  }
+  .hpm-zone-panel .panel-label{margin-bottom:4px !important;font-size:8px !important;}
+  .hpm-zone-panel .telemetry-row{margin-bottom:2px !important;font-size:8px !important;}
+  .hpm-zone-panel .telemetry-row .num{font-size:8.5px !important;}
+
+  /* Roboflow live panel is positioned inside the tactical view. */
+  #yoloLivePanel{
+    position:absolute !important;left:12px !important;top:112px !important;bottom:auto !important;width:275px !important;z-index:18 !important;
+    padding:8px 9px !important;
+  }
+  #yoloLivePanel .yolo-live-wrap{aspect-ratio:16/9 !important;}
+
+  /* Step 8/9/10 is a full-width bottom strip, matching sample. */
+  .s8910-grid{
+    width:calc(100% - 16px) !important;margin:8px 8px 10px !important;grid-template-columns:1.15fr 1fr 1fr !important;gap:8px !important;
+  }
+  .s8910-card{min-height:140px !important;height:140px !important;padding:8px 10px !important;}
+}
+
+@media (max-width:900px){
+  .app{display:flex !important;flex-direction:column !important;gap:8px !important;padding:8px !important;min-height:100vh !important;height:auto !important;}
+  .radar-pane{position:relative !important;height:auto !important;min-height:65vh !important;}
+  .control-pane{display:flex !important;flex-direction:column !important;gap:8px !important;}
+  .control-pane>.panel:nth-child(5),.control-pane>.panel:nth-child(6),.control-pane>.trajectory-panel,.control-pane>.search-status-panel{width:100% !important;}
+  .hpm-zone-panel,#yoloLivePanel{position:relative !important;left:auto !important;top:auto !important;width:100% !important;margin:5px 0 !important;}
+  .s8910-grid{grid-template-columns:1fr !important;width:calc(100% - 16px) !important;}
+}
+</style>
+
+<style>
+/* RADAR POSITION / SIZE FIX */
+@media (min-width: 901px) {
+  .app {
+    grid-template-columns: 56% 44% !important;
+  }
+
+  .radar-pane {
+    position: relative !important;
+  }
+
+  .radar-canvas-wrap {
+    position: relative !important;
+    width: 100% !important;
+    height: calc(100vh - 90px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    padding-right: 6px !important;
+  }
+
+  canvas#radar {
+    width: min(70vh, 100%) !important;
+    height: min(70vh, 100%) !important;
+    max-width: none !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+    transform: translateX(-30px) !important;
+  }
+
+  /* Keep the information overlays safely on the left side. */
+  .hpm-zone-panel {
+    left: 8px !important;
+    right: auto !important;
+  }
+
+  #yoloLivePanel {
+    left: 12px !important;
+    right: auto !important;
+  }
+}
+<style id="final-yolo-overlap-fix">
+@media (min-width: 901px) {
+  .radar-pane {
+    position: relative !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+    align-self: start;
+  }
+  .radar-canvas-wrap {
+    height: calc(100vh - 90px) !important;
+    flex: 0 0 auto !important;
+  }
+  #yoloLivePanel {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: min(520px, calc(100% - 16px)) !important;
+    margin: 18px auto 12px !important;
+    z-index: 20 !important;
+  }
+}
+@media (max-width: 900px) {
+  #yoloLivePanel {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: calc(100% - 16px) !important;
+    margin: 8px auto !important;
+  }
+}
+</style>
+</head>
+<!--
+  HARDWARE INTEGRATION CONTRACT:
+  Raspberry Pi radar program should eventually send ADC-derived
+  time-domain samples into window.radarHardwareReady.pushRadarSamples(samples, fs).
+  The existing Step 7 processing/visualization can consume that stream without
+  changing the dashboard architecture.
+-->
+<body>
+<div class="app">
+<div class="radar-pane">
+<div class="title-block">
+<div class="sub">ANTI-DRONE TACTICAL VIEW</div>
+</div>
+<div class="radar-canvas-wrap">
+<canvas height="640" id="radar" width="640"></canvas>
+</div>
+<div id="yoloLivePanel">
+<div class="yolo-head"><span>ROBOFLOW LIVE LINK</span><span class="yolo-state" id="yoloWsState">OFFLINE</span></div>
+<div class="yolo-grid">
+<div class="yolo-cell"><div class="yolo-k">MODEL</div><div class="yolo-v" id="yoloModelName">Roboflow Workflow</div></div>
+<div class="yolo-cell"><div class="yolo-k">TARGET</div><div class="yolo-v" id="yoloTargetId">—</div></div>
+<div class="yolo-cell"><div class="yolo-k">CLASS</div><div class="yolo-v" id="yoloClass">—</div></div>
+<div class="yolo-cell"><div class="yolo-k">CONFIDENCE</div><div class="yolo-v" id="yoloConfidence">—</div></div>
+<div class="yolo-cell"><div class="yolo-k">ROBOFLOW STREAM FPS</div><div class="yolo-v" id="yoloFps">—</div></div>
+<div class="yolo-cell"><div class="yolo-k">INFERENCE AGE</div><div class="yolo-v" id="yoloInferenceAge">—</div></div>
+<div class="yolo-cell"><div class="yolo-k">CENTER X / Y</div><div class="yolo-v" id="yoloCenter">—</div></div>
+<div class="yolo-cell"><div class="yolo-k">GIMBAL INPUT</div><div class="yolo-v" id="yoloBearing">—</div></div>
+</div>
+<div class="yolo-live-title">LIVE CAMERA · PERSISTENT BYTETRACK COLORS</div>
+<div class="yolo-live-wrap"><canvas height="512" id="yoloLiveCanvas" width="640"></canvas></div>
+<div class="yolo-live-title">ACTIVE TRACKS</div>
+<div class="yolo-track-list" id="yoloTrackList"><div class="yolo-track-item"><span class="yolo-track-text">WAITING FOR TRACKS</span></div></div>
+<div class="yolo-actions">
+<button id="yoloConnectBtn">CONNECT CAMERA + YOLO</button>
+<button id="yoloModeBtn">ROBOFLOW TRACK: OFF</button>
+</div>
+
+</div>
+
+<div class="legend">
+<span class="l-uncomp">Standard PID (uncompensated)</span>
+<span class="l-comp">Adaptive compensated</span>
+</div>
+<div class="legend" style="margin-top:2px;">
+<span class="l-active">Active target</span>
+<span class="l-oor">Out of jam range</span>
+<span class="l-dead">Neutralized</span>
+<span style="color:#d8b4fe;">Bird / non-RF</span>
+<span style="color:#8fd3ff;">Commercial flight / non-threat</span>
+</div>
+<div class="panel hpm-zone-panel">
+<div class="panel-label"><span>HPM GIMBAL RESPONSE ZONE</span></div>
+<div class="telemetry-row"><span>HPM model effectiveness</span><span class="num" id="txPowerNum">—</span></div>
+<div class="telemetry-row"><span>HPM response envelope (sim)</span><span class="num warn" id="rangeNum">—</span></div>
+<div class="telemetry-row"><span>Simultaneously neutralized</span><span class="num good" id="dronesNum">—</span></div>
+<div class="telemetry-row"><span>HPM gimbal aim</span><span class="num" id="trackingNum">—</span></div>
+<div class="telemetry-row"><span>RF / identification state</span><span class="num" id="rfStatusNum">IDLE</span></div>
+<div class="telemetry-row"><span>Response status</span><span class="status-badge degraded" id="statusBadge">STANDBY</span></div>
+<!--<button class="video-select-btn" id="videoSelectBtn">▣ DRONE VIDEO / FIELD FEED</button>-->
+<!--<button class="reset-btn" id="resetBtn">↺ RESET TARGETS</button>-->
+<button class="reset-btn" id="reactivateBtn">↻ REACTIVATE SIM DRONES</button>
+</div></div>
+<div class="control-pane">
+<div class="title-block">
+<h1>ENVIRONMENTAL CONTROLS</h1>
+</div>
+<div class="panel">
+<div class="panel-label"><span>SCENARIO &amp; ENVIRONMENT</span></div>
+<div class="preset-row" style="margin-bottom: 12px;">
+<button class="preset-btn sea" data-a="0" data-t="20" data-w="10">SEA LEVEL</button>
+<button class="preset-btn winter" data-a="2000" data-t="-10" data-w="30">WINTER</button>
+<button class="preset-btn extreme" data-a="5500" data-t="-40" data-w="70">HIMALAYAN</button>
+</div>
+<div class="slider-row">
+<label>TEMPERATURE <span class="val" id="tempVal">-30°C</span></label>
+<input id="tempSlider" max="20" min="-40" step="1" type="range" value="-30"/>
+</div>
+<div class="slider-row">
+<label>WIND SPEED <span class="val" id="windVal">40 km/h</span></label>
+<input id="windSlider" max="72" min="0" step="1" type="range" value="40"/>
+</div>
+<div class="slider-row">
+<label>ALTITUDE <span class="val" id="altVal">5000 m</span></label>
+<input id="altSlider" max="7500" min="0" step="100" type="range" value="5000"/>
+</div>
+<div class="slider-row">
+<label>SNOW / CLUTTER <span class="val" id="snowVal">0.30</span></label>
+<input id="snowSlider" max="1" min="0" step="0.01" type="range" value="0.30"/>
+</div>
+<div class="slider-row">
+<label>VISIBILITY FACTOR <span class="val" id="visibilityVal">0.80</span></label>
+<input id="visibilitySlider" max="1" min="0" step="0.01" type="range" value="0.80"/>
+</div>
+<div class="slider-row">
+<label>CAMERA LATENCY <span class="val" id="latencyVal">50 ms</span></label>
+<input id="latencySlider" max="100" min="20" step="1" type="range" value="50"/>
+</div>
+</div>
+<div class="improvement-banner">
+<div class="big" id="improvementBig">—</div>
+<div class="lbl">TRACKING ERROR REDUCTION FROM ADAPTIVE CONTROL</div>
+</div>
+<div class="panel">
+<div class="panel-label">
+<span>HPM GIMBAL SUBSYSTEM</span>
+<label class="toggle-row"><input checked="" id="baselineToggle" type="checkbox"/> SHOW BASELINE</label>
+</div>
+<div class="telemetry-row"><span>Gimbal friction factor</span><span class="num" id="frictionNum">—</span></div>
+<div class="telemetry-row"><span>Available motor torque</span><span class="num" id="torqueNum">—</span></div>
+<div class="telemetry-row"><span>Air density ratio</span><span class="num" id="densityNum">—</span></div>
+<div class="telemetry-row"><span>Target range</span><span class="num" id="targetRangeNum">—</span></div>
+<div class="telemetry-row"><span>Gimbal vector</span><span class="num good" id="gimbalVectorNum">—</span></div>
+<div class="telemetry-row"><span>Target bearing</span><span class="num" id="targetBearingNum">—</span></div>
+<div class="telemetry-row"><span>Vector → target range</span><span class="num" id="vectorRangeNum">—</span></div>
+<div class="telemetry-row"><span>Live tracking error</span><span class="num good" id="rmsNum">—</span></div>
+<div class="chart-wrap"><canvas height="110" id="errChart" width="380"></canvas></div>
+</div>
+<div class="panel">
+<div class="panel-label"><span>RADAR SUBSYSTEM </span></div>
+<div class="telemetry-row"><span>Detection probability (model)</span><span class="num good" id="radarPdNum">—</span></div>
+</div>
+<div class="panel">
+<div class="panel-label"><span>THERMAL CAMERA </span></div>
+<div class="telemetry-row"><span>Detection confidence (model)</span><span class="num good" id="cameraConfNum">—</span></div>
+</div>
+<div class="panel estimation-panel">
+<div class="panel-label"><span>3D TRACK ESTIMATION · EKF + MICRO-DOPPLER</span><span id="ekfModeLabel" style="color:var(--text-dim);">WAITING</span></div>
+<div class="estimation-grid">
+<div class="estimation-card">
+<div class="estimation-card-header"><b>STEP 6 · 3D EKF</b><span>TRUE / MEASURED / ESTIMATE</span></div>
+<canvas height="135" id="ekfCanvas" width="380"></canvas>
+</div>
+<div class="estimation-card">
+<div class="estimation-card-header"><b>STEP 7 · RADAR MICRO-DOPPLER</b><span>SIMULATION / REAL-RADAR READY</span></div>
+<canvas height="135" id="microDopplerCanvas" width="380"></canvas>
+</div>
+</div>
+<div class="estimation-meta">
+<span>EKF POS <b id="ekfPosNum">—</b></span>
+<span>EKF SPEED <b id="ekfSpeedNum">—</b></span>
+<span>RANGE RESIDUAL <b id="ekfResidualNum">—</b></span>
+</div>
+</div>
+<div class="panel trajectory-panel">
+<div class="panel-label">
+<span>TRACKED DRONE TRAJECTORIES · BIRDS + FLIGHTS IGNORED</span>
+<span id="trajectoryTarget" style="color:var(--text-dim);">SEARCHING</span>
+</div>
+<div class="trajectory-grid" id="trajectoryGrid"></div>
+<div class="trajectory-meta">
+<span>SAVED PATHS <b id="trajectoryPoints">0/4</b></span>
+<span>RANGE <b id="trajectoryRange">—</b></span>
+<span>STATE <b id="trajectoryState">SEARCHING</b></span>
+</div>
+</div>
+
+<div class="panel search-status-panel">
+<div class="panel-label"><span>SEARCHING</span><span style="color:var(--cyan);">AUTO SCAN</span></div>
+<div class="search-stat"><span>TRACKS SAVED</span><b id="searchTracksSaved">—</b></div>
+<div class="search-stat"><span>RANGE</span><b id="searchRange">—</b></div>
+<div class="search-stat"><span>STATE</span><b id="searchState">SEARCHING</b></div>
+<div class="search-stat"><span>TARGETS</span><b id="searchTargets">—</b></div>
+<div class="search-stat"><span>THREAT LEVEL</span><b class="good">LOW</b></div>
+<div class="search-stat"><span>SYSTEM HEALTH</span><b class="good">OK</b></div>
+<div class="auto-scan-mark"><div class="scan-ring"><i></i></div><span>AUTO SCAN</span></div>
+</div></div>
+</div>
+<!-- ===== ADDITIVE ROBOFLOW LIVE LINK PANEL ===== -->
+
+<div id="videoLibraryModal">
+<div class="video-library">
+<div class="video-library-head">
+<div><h2>DRONE FIELD VIDEO LIBRARY</h2><p>Choose a public drone/quadrotor flight clip. Conditions are locked for the selected demonstration.</p></div>
+<button class="video-close" id="closeVideoLibrary">CLOSE</button>
+</div>
+<div class="video-grid" id="videoGrid"></div>
+</div>
+</div>
+<div id="videoOps">
+<div class="video-stage">
+<video controls="" id="fieldVideo" playsinline="" preload="auto" title="Uploaded drone field video"></video>
+<canvas id="videoTrackCanvas"></canvas>
+<canvas height="256" id="videoCvCanvas" width="320"></canvas>
+<div class="video-overlay"></div><div class="video-crosshair"></div>
+<div class="video-target-status" id="videoTargetStatus">FRAME TRACKER: INITIALIZING</div>
+</div>
+<aside class="video-hud">
+<h2>FIELD VIDEO / LOCKED HUD</h2>
+<div class="mode" id="videoModeLabel">PUBLIC DRONE FOOTAGE · SIMULATION OVERLAY</div>
+<div class="hud-section"><div class="hud-section-title">FIXED ENVIRONMENT</div>
+<div class="hud-row"><span>SCENARIO</span><b id="hudScenario">—</b></div>
+<div class="hud-row"><span>TEMPERATURE</span><b id="hudTemp">—</b></div>
+<div class="hud-row"><span>WIND</span><b id="hudWind">—</b></div>
+<div class="hud-row"><span>ALTITUDE</span><b id="hudAlt">—</b></div>
+<div class="hud-row"><span>SNOW / CLUTTER</span><b id="hudSnow">—</b></div>
+<div class="hud-row"><span>VISIBILITY</span><b id="hudVisibility">—</b></div>
+<div class="hud-row"><span>CAMERA LATENCY</span><b id="hudLatency">—</b></div>
+</div>
+<div class="hud-section"><div class="hud-section-title">TRACKING / SENSOR STATE</div>
+<div class="hud-row"><span>GIMBAL ERROR</span><b class="good" id="hudError">—</b></div>
+<div class="hud-row"><span>GIMBAL VECTOR</span><b id="hudVector">—</b></div>
+<div class="hud-row"><span>RADAR PD</span><b class="good" id="hudRadar">—</b></div>
+<div class="hud-row"><span>THERMAL CONF.</span><b class="good" id="hudThermal">—</b></div>
+<div class="hud-row"><span>RF STATUS</span><b class="good" id="hudRF">—</b></div>
+<div class="hud-row"><span>TRACK</span><b id="hudTrack">VIDEO TARGET</b></div>
+</div>
+<div class="hud-section"><div class="hud-section-title">SIMULATION STATUS</div>
+<div class="hud-row"><span>MODE</span><b class="warn">NON-INTERACTIVE</b></div>
+<div class="hud-row"><span>NEUTRALIZATION</span><b class="warn" id="hudNeutral">SIMULATED ONLY</b></div>
+<div class="hud-row"><span>PARAMETERS</span><b>LOCKED</b></div>
+</div>
+<button class="hud-close" id="exitVideoMode">← EXIT FIELD VIDEO</button>
+<div class="video-trajectory-panel">
+<div class="video-trajectory-title">REAL-TIME DRONE TRAJECTORY</div>
+<canvas height="82" id="videoTrajectoryCanvas" width="300"></canvas>
+</div>
+</aside>
+</div>
+<script>
+
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+let seededRandom = mulberry32(42); 
+
+const RADAR_FREQ_GHZ_MIN = 60, RADAR_FREQ_GHZ_MAX = 64;
+const RADAR_TX_CHANNELS = 3, RADAR_RX_CHANNELS = 4;
+const RADAR_TX_POWER_DBM = 12, RADAR_RX_NF_DB = 12, RADAR_ADC_MSPS = 25;
+const RADAR_UPDATE_MIN_HZ = 10, RADAR_UPDATE_MAX_HZ = 30;
+const CAMERA_WIDTH = 640, CAMERA_HEIGHT = 512;
+const CAMERA_SPECTRAL_MIN_UM = 8, CAMERA_SPECTRAL_MAX_UM = 14;
+const CAMERA_SENSITIVITY_MK = 20;
+const CAMERA_FRAME_MIN_HZ = 30, CAMERA_FRAME_MAX_HZ = 60;
+
+
+const FRICTION_FACTOR_NORMAL = 1.0, FRICTION_FACTOR_COLD = 2.0;
+const CABLE_FACTOR_NORMAL = 1.0, CABLE_FACTOR_COLD = 2.0;
+const ENCODER_RESOLUTION_DEG = 0.05;
+const GIMBAL_NORMAL_ERROR_DEG = 0.5;
+const GIMBAL_SEVERE_ERROR_DEG = 3.0;
+const CONTROL_RATE_HZ = 50;
+
+
+const TORQUE_NORMAL = 1.00;
+
+const TORQUE_COLD = 0.55;          
+const TORQUE_COLD_ADAPTIVE = 0.85; 
+const TX_POWER_NORMAL_W = 10.0;
+const FREQ_MHZ = 2450.0;
+const JAM_THRESHOLD_DBM = -80.0;
+
+function coldness(tempC) {
+  return Math.min(1, Math.max(0, (20 - tempC) / 60));
+}
+function frictionFactorAt(tempC) {
+  const c = coldness(tempC);
+  return FRICTION_FACTOR_NORMAL + (FRICTION_FACTOR_COLD - FRICTION_FACTOR_NORMAL) * c;
+}
+
+
+function airDensityRatio(altM) {
+  const calibratedScaleHeight = -5000 / Math.log(0.60);
+  return Math.exp(-altM / calibratedScaleHeight);
+}
+function pressureRatio(altM) {
+  const calibratedScaleHeight = -5000 / Math.log(0.53);
+  return Math.exp(-altM / calibratedScaleHeight);
+}
+function pressureDeratingFactor(altM) {
+  const p = pressureRatio(altM);
+  return Math.max(0.85, 1 - 0.30 * (1 - p));
+}
+function maxTorqueAt(tempC, altM, isAdaptive=false) {
+  const c = coldness(tempC);
+  const coldCap = isAdaptive ? TORQUE_COLD_ADAPTIVE : TORQUE_COLD;
+  const tempDerated = TORQUE_NORMAL - (TORQUE_NORMAL - coldCap) * c;
+  return tempDerated * pressureDeratingFactor(altM);
+}
+function cableFactorAt(tempC) {
+  const c = coldness(tempC);
+  return CABLE_FACTOR_NORMAL + (CABLE_FACTOR_COLD - CABLE_FACTOR_NORMAL) * c;
+}
+
+
+function radarDetectionProbability(tempC, snow, visibility) {
+  const coldPenalty = 0.12 * coldness(tempC);
+  const clutterPenalty = 0.14 * snow;
+  const visibilityPenalty = 0.10 * (1 - visibility);
+  return Math.max(0.70, Math.min(0.99, 0.99 - coldPenalty - clutterPenalty - visibilityPenalty));
+}
+function radarRangeErrorScenario(snow) { return 1 + 4 * snow; }
+function radarAngleErrorScenario(snow) { return 0.5 + 1.5 * snow; }
+function cameraLocalizationError(tempC, frost, visibility, latencyMs) {
+  const normalized = 0.45 * frost + 0.35 * (1 - visibility) + 0.20 * ((latencyMs - 20) / 80);
+  return Math.max(0, Math.min(5, 5 * normalized));
+}
+function cameraConfidence(tempC, frost, visibility, latencyMs) {
+  const penalty = 0.15 * coldness(tempC) + 0.35 * frost + 0.35 * (1 - visibility) + 0.15 * ((latencyMs - 20) / 80);
+  return Math.max(0, Math.min(1, 1 - penalty));
+}
+
+function txPowerAt(tempC, altM) {
+  return TX_POWER_NORMAL_W * (maxTorqueAt(tempC, altM, true) / TORQUE_NORMAL);
+}
+function wattsToDbm(w) { return 10 * Math.log10(w * 1000); }
+function fsplDb(distKm, freqMhz) {
+  distKm = Math.max(distKm, 0.001);
+  return 20 * Math.log10(distKm) + 20 * Math.log10(freqMhz) + 32.44;
+}
+function receivedDbm(txW, distKm) { return wattsToDbm(txW) - fsplDb(distKm, FREQ_MHZ); }
+function maxEffectiveRangeKm(txW) {
+  let lo = 0.01, hi = 20;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (receivedDbm(txW, mid) >= JAM_THRESHOLD_DBM) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+
+
+const INITIAL_DRONES = [
+  { id: 'D1', x: 2.6, y: 1.1, vx: 0.18, vy: 0.05, phase: 0.0, type: 'cross', status: null },
+  { id: 'D2', x: 4.8, y: -3.2, vx: -0.08, vy: 0.16, phase: 1.4, type: 'arc', status: null },
+  { id: 'D3', x: -6.4, y: 4.2, vx: 0.16, vy: -0.12, phase: 2.2, type: 'cross', status: null },
+  { id: 'D4', x: -8.5, y: -4.8, vx: 0.20, vy: 0.09, phase: 3.1, type: 'arc', status: null },
+  { id: 'D5', x: 11.5, y: 4.5, vx: -0.15, vy: -0.08, phase: 4.0, type: 'cross', status: null }
+];
+let drones = INITIAL_DRONES.map(d => ({ ...d, kind: 'drone' }));
+
+const INITIAL_BIRDS = [
+  { id: 'B1', x: -3.5, y: 2.0, vx: 0.13, vy: 0.09, phase: 0.8, type: 'arc' },
+  { id: 'B2', x: 6.2, y: 1.0, vx: -0.11, vy: 0.12, phase: 2.7, type: 'cross' },
+  { id: 'B3', x: -7.5, y: -2.8, vx: 0.16, vy: 0.06, phase: 4.4, type: 'arc' }
+];
+let birds = INITIAL_BIRDS.map(b => ({ ...b }));
+
+// Commercial flights: visible for airspace awareness. They DO get pulled into
+// the same RF-verification pipeline as drones (so the operator can see the
+// system correctly identify them), but once verified as non-threats the
+// gimbal releases them immediately instead of engaging.
+const INITIAL_AIRCRAFT = [
+  { id: 'C1', callsign: 'AIR-101', x: -17.5, y: 8.0, vx: 0.20, vy: -0.015, phase: 0.4, altitude: 'FL350' },
+  { id: 'C2', callsign: 'AIR-202', x: 16.5, y: -7.0, vx: -0.16, vy: 0.02, phase: 2.1, altitude: 'FL390' }
+];
+let aircraft = INITIAL_AIRCRAFT.map(a => ({ ...a, status: null, kind: 'aircraft' }));
+
+
+const inertia = 0.02;
+const dt = 1 / CONTROL_RATE_HZ;
+let simTime = 0;
+
+const adaptive = { angle: 0, vel: 0, bias: 0, integral: 0, prevError: 0, estBias: 0 };
+const baseline = { angle: 0, vel: 0, bias: 0, integral: 0, prevError: 0, estBias: 0 };
+const errHistoryAdaptive = [];
+const errHistoryBaseline = [];
+const MAX_HISTORY = 150;
+
+const REQUIRED_RF_LOCK_TIME = 0.25;
+const HPM_NEUTRALIZATION_TIME = 1.0;
+let rfLockTimer = 0;
+let rfVerified = false;
+let hoverTimer = 0;
+let scanAngle = 0;
+let _currentRangeKm = 8;
+let currentTrackedId = null;
+let gimbalAcquired = false;
+
+const bearingFilter = { angle: 0, rate: 0, variance: 0.02, initialized: false };
+function resetBearingFilter(angle = 0) {
+  bearingFilter.angle = angle;
+  bearingFilter.rate = 0;
+  bearingFilter.variance = 0.02;
+  bearingFilter.initialized = false;
+}
+function wrapAngle(a) {
+  return Math.atan2(Math.sin(a), Math.cos(a));
+}
+function bearingOf(d) { return Math.atan2(d.y, d.x); }
+function rangeOf(d) { return Math.hypot(d.x, d.y); }
+function deg(rad) { return rad * 180 / Math.PI; }
+function bearingRateOf(d) {
+  const r2 = Math.max(1e-6, d.x * d.x + d.y * d.y);
+  return (d.x * d.vy - d.y * d.vx) / r2;
+}
+function quantizeEncoder(rad) {
+  const q = ENCODER_RESOLUTION_DEG * Math.PI / 180;
+  return Math.round(rad / q) * q;
+}
+
+function updateDroneMotion() {
+  drones.forEach(d => {
+    if (d.status === 'DEACTIVATED') return;
+    const lateral = 0.035 * Math.sin(0.55 * simTime + d.phase);
+    if (d.type === 'arc') {
+      d.x += (d.vx - lateral * 0.7) * dt;
+      d.y += (d.vy + lateral) * dt;
+    } else {
+      d.x += (d.vx + lateral) * dt;
+      d.y += (d.vy - lateral * 0.5) * dt;
+    }
+
+
+    const r = rangeOf(d);
+    if (r > 19.2) {
+      const nx = d.x / r, ny = d.y / r;
+      const outward = d.vx * nx + d.vy * ny;
+      d.vx -= 2 * outward * nx;
+      d.vy -= 2 * outward * ny;
+      d.x = nx * 19.2;
+      d.y = ny * 19.2;
+    }
+  });
+}
+
+function updateDroneStatuses(rangeKm) {
+  drones.forEach(d => {
+    if (d.status === 'DEACTIVATED') return;
+    d.status = rangeOf(d) <= rangeKm ? 'ACTIVE' : 'OUT_OF_RANGE';
+  });
+}
+
+// Aircraft only become verification candidates once they're within the
+// same detection/jamming range as drones — not simply because they're
+// airborne. Once classified as a non-threat, that classification is sticky.
+function updateAircraftStatuses(rangeKm) {
+  aircraft.forEach(a => {
+    if (a.status === 'NON_THREAT') return;
+    a.status = rangeOf(a) <= rangeKm ? 'ACTIVE' : 'OUT_OF_RANGE';
+  });
+}
+
+function updateBirdMotion() {
+  birds.forEach(b => {
+    const lateral = 0.055 * Math.sin(0.75 * simTime + b.phase);
+
+    if (b.type === 'arc') {
+      b.x += (b.vx - lateral * 0.65) * dt;
+      b.y += (b.vy + lateral) * dt;
+    } else {
+      b.x += (b.vx + lateral) * dt;
+      b.y += (b.vy - lateral * 0.45) * dt;
+    }
+
+    const r = rangeOf(b);
+    if (r > 19.2) {
+      const nx = b.x / r, ny = b.y / r;
+      const outward = b.vx * nx + b.vy * ny;
+      b.vx -= 2 * outward * nx;
+      b.vy -= 2 * outward * ny;
+      b.x = nx * 19.2;
+      b.y = ny * 19.2;
+    }
+  });
+}
+
+function updateAircraftMotion() {
+  aircraft.forEach(a => {
+    // Smooth, near-straight commercial flight routes.
+    const lateral = 0.018 * Math.sin(0.28 * simTime + a.phase);
+    a.x += (a.vx - lateral * 0.25) * dt;
+    a.y += (a.vy + lateral) * dt;
+
+    // Wrap around the simulated airspace so flights remain visible.
+    if (a.x > 21) a.x = -21;
+    if (a.x < -21) a.x = 21;
+    if (a.y > 19.5) a.y = -19.5;
+    if (a.y < -19.5) a.y = 19.5;
+  });
+}
+
+// Drones are the actual threat class and always take priority: the gimbal
+// only considers an aircraft when there is no active drone at all, even if
+// a plane happens to be nearer at that instant.
+function chooseNearestActive() {
+  const activeDrones = drones.filter(d => d.status === 'ACTIVE');
+  if (activeDrones.length) {
+    activeDrones.sort((a, b) => rangeOf(a) - rangeOf(b));
+    return activeDrones[0];
+  }
+  const activeAircraft = aircraft.filter(a => a.status === 'ACTIVE');
+  if (!activeAircraft.length) return null;
+  activeAircraft.sort((a, b) => rangeOf(a) - rangeOf(b));
+  return activeAircraft[0];
+}
+
+function findTrackable(id) {
+  return drones.find(d => d.id === id) || aircraft.find(a => a.id === id);
+}
+
+function getLockedTarget() {
+  if (currentTrackedId) {
+    const locked = findTrackable(currentTrackedId);
+    // A drone threat preempts an aircraft mid-verification — drones always
+    // come first, even if the gimbal is partway through clearing a plane.
+    const dronePreempts = locked && locked.kind === 'aircraft' && drones.some(d => d.status === 'ACTIVE');
+    if (locked && locked.status === 'ACTIVE' && !dronePreempts) return locked;
+    if (locked && hoverTimer > 0 && locked.status !== 'DEACTIVATED' && !dronePreempts) return locked;
+    currentTrackedId = null;
+    hoverTimer = 0;
+  }
+  const next = chooseNearestActive();
+  if (next) {
+    currentTrackedId = next.id;
+    rfLockTimer = 0;
+    rfVerified = false;
+    const acquiredBearing = bearingOf(next);
+    resetBearingFilter(acquiredBearing);
+
+    adaptive.angle = acquiredBearing;
+    baseline.angle = acquiredBearing;
+    adaptive.vel = baseline.vel = 0;
+    adaptive.integral = baseline.integral = 0;
+    adaptive.prevError = baseline.prevError = 0;
+    adaptive.estBias = baseline.estBias = 0;
+    gimbalAcquired = true;
+  }
+  return next;
+}
+
+function resetTargets() {
+  // Neutralized simulated drones stay neutralized across resets/presets.
+  // They are only reactivated by the explicit REACTIVATE SIM DRONES button.
+  const preservedDeactivatedIds = new Set(
+    drones.filter(d => d.status === 'DEACTIVATED').map(d => d.id)
+  );
+
+  drones = INITIAL_DRONES.map(d => ({
+    ...d,
+    status: preservedDeactivatedIds.has(d.id) ? 'DEACTIVATED' : null,
+    kind: 'drone'
+  }));
+  birds = INITIAL_BIRDS.map(b => ({ ...b }));
+  aircraft = INITIAL_AIRCRAFT.map(a => ({ ...a, status: null, kind: 'aircraft' }));
+  rfLockTimer = 0;
+  rfVerified = false;
+  hoverTimer = 0;
+  currentTrackedId = null;
+  gimbalAcquired = false;
+  trajectoryHistory.length = 0;
+  savedTrajectories.length = 0;
+  trajectoryTargetId = null;
+  simTime = 0;
+  adaptive.angle = 0; adaptive.vel = 0; adaptive.bias = 0; adaptive.integral = 0; adaptive.prevError = 0; adaptive.estBias = 0;
+  baseline.angle = 0; baseline.vel = 0; baseline.bias = 0; baseline.integral = 0; baseline.prevError = 0; baseline.estBias = 0;
+  errHistoryAdaptive.length = 0;
+  errHistoryBaseline.length = 0;
+  resetBearingFilter(0);
+}
+
+
+function filterBearing(target, tempC, snow, visibility, latencyMs) {
+  const trueBearing = bearingOf(target);
+  const radarErrDeg = radarAngleErrorScenario(snow);
+  const cameraErrDeg = cameraLocalizationError(tempC, snow, visibility, latencyMs);
+  const sigma = Math.max(0.05, 0.45 * radarErrDeg + 0.15 * cameraErrDeg);
+  const noise = (seededRandom() - 0.5) * 2 * sigma * Math.PI / 180;
+  const measurement = wrapAngle(trueBearing + noise);
+
+  if (!bearingFilter.initialized) {
+    bearingFilter.angle = measurement;
+    bearingFilter.rate = bearingRateOf(target);
+    bearingFilter.variance = (sigma * Math.PI / 180) ** 2;
+    bearingFilter.initialized = true;
+    return quantizeEncoder(bearingFilter.angle);
+  }
+
+  // Predict.
+  bearingFilter.angle = wrapAngle(bearingFilter.angle + bearingFilter.rate * dt);
+  bearingFilter.variance += 0.0008;
+
+  // Correct.
+  const measurementVar = Math.max(1e-5, (sigma * Math.PI / 180) ** 2);
+  const gain = bearingFilter.variance / (bearingFilter.variance + measurementVar);
+  const innovation = wrapAngle(measurement - bearingFilter.angle);
+  const previous = bearingFilter.angle;
+  bearingFilter.angle = wrapAngle(bearingFilter.angle + gain * innovation);
+  bearingFilter.rate = 0.85 * bearingFilter.rate + 0.15 * wrapAngle(bearingFilter.angle - previous) / dt;
+  bearingFilter.variance = (1 - gain) * bearingFilter.variance;
+
+  return quantizeEncoder(bearingFilter.angle);
+}
+
+function stepAxis(state, tempC, windKmh, altM, isAdaptive, targetAng, targetRate) {
+  const friction = 0.05 * frictionFactorAt(tempC);
+  const maxT = maxTorqueAt(tempC, altM, isAdaptive);
+  const densityRatio = airDensityRatio(altM);
+  const windMs = Math.min(20, Math.max(0, windKmh / 3.6));
+  const windAmplitude = 0.12 * (windMs / 20) * densityRatio;
+  const cableStiff = 0.15 * cableFactorAt(tempC);
+
+  const measured = state.angle + state.bias;
+  const error = wrapAngle(targetAng - measured);
+
+  let kp, ki, kd, correctedError;
+  if (isAdaptive) {
+    kp = 50.0;  
+    ki = 0.20;
+    kd = 2.00; 
+    state.estBias += 0.025 * error * dt;
+    correctedError = error - state.estBias;
+  } else {
+   
+    kp = 6.0;
+    ki = 0.08;
+    kd = 0.55;
+    correctedError = error;
+  }
+
+  state.integral += correctedError * dt;
+  state.integral = Math.max(-0.5, Math.min(0.5, state.integral));
+  const derivative = (correctedError - state.prevError) / dt;
+  state.prevError = correctedError;
+
+  const windTorque = windAmplitude * Math.sin(2 * simTime) + windAmplitude * 0.4 * (seededRandom() - 0.5);
+  const cableTorque = cableStiff * state.angle;
+  const disturbance = windTorque + cableTorque;
+
+
+  let motorTorque = kp * correctedError + ki * state.integral + kd * (targetRate - state.vel);
+  if (isAdaptive) motorTorque += disturbance;
+  motorTorque = Math.max(-maxT, Math.min(maxT, motorTorque));
+
+  const netTorque = motorTorque - friction * state.vel - disturbance;
+  const angularAccel = netTorque / inertia;
+  state.vel += angularAccel * dt;
+  state.angle = wrapAngle(state.angle + state.vel * dt);
+  state.bias += 0.002 * dt * Math.sin(0.1 * simTime) * coldness(tempC);
+
+  const trackingErrorDeg = Math.abs(wrapAngle(targetAng - state.angle) * 180 / Math.PI);
+  return { target: targetAng, actual: state.angle, trackingErrorDeg };
+}
+
+function stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs) {
+  _currentRangeKm = rangeKm;
+  updateDroneMotion();
+  updateBirdMotion();
+  updateAircraftMotion();
+  updateDroneStatuses(rangeKm);
+  updateAircraftStatuses(rangeKm);
+  const currentTarget = getLockedTarget();
+
+  // HPM gimbal aiming: use the centre direction of all active drones in
+  // the existing simulated response envelope instead of chasing one drone.
+  const hpmAimDrones = getHpmTargets(rangeKm);
+  let hpmAimAngle = adaptive.angle;
+  if (hpmAimDrones.length) {
+    let sx = 0, sy = 0;
+    hpmAimDrones.forEach(d => {
+      const a = bearingOf(d);
+      const r = rangeOf(d);
+      sx += Math.cos(a) * r;
+      sy += Math.sin(a) * r;
+    });
+    if (Math.hypot(sx, sy) > 1e-6) hpmAimAngle = Math.atan2(sy, sx);
+  }
+
+  const targetAng = hpmAimDrones.length ? hpmAimAngle : adaptive.angle;
+  const targetRate = 0;
+
+  const rAdaptive = stepAxis(adaptive, tempC, windKmh, altM, true, targetAng, targetRate);
+  const rBaseline = stepAxis(baseline, tempC, windKmh, altM, false, targetAng, targetRate);
+  simTime += dt;
+
+  errHistoryAdaptive.push(rAdaptive.trackingErrorDeg);
+  errHistoryBaseline.push(rBaseline.trackingErrorDeg);
+  if (errHistoryAdaptive.length > MAX_HISTORY) errHistoryAdaptive.shift();
+  if (errHistoryBaseline.length > MAX_HISTORY) errHistoryBaseline.shift();
+
+  
+  if (currentTarget) {
+    const wellTracked = rAdaptive.trackingErrorDeg <= GIMBAL_SEVERE_ERROR_DEG;
+
+    // Simulated identification gate:
+    // any tracked object (drone or aircraft) must remain tracked for 1
+    // second before its RF signature is considered verified. Birds never
+    // enter this path. Once verified, drones proceed to engagement, but
+    // aircraft are confirmed as non-threats and released immediately.
+    if (!rfVerified) {
+      if (wellTracked) {
+        rfLockTimer += dt;
+        if (rfLockTimer >= REQUIRED_RF_LOCK_TIME) {
+          rfLockTimer = REQUIRED_RF_LOCK_TIME;
+          rfVerified = true;
+          hoverTimer = 0;
+
+          if (currentTarget.kind === 'aircraft') {
+            // Non-threat confirmed: classify it. It naturally drops out of
+            // the candidate pool (status is no longer 'ACTIVE'), so the next
+            // loop tick hands the gimbal to the next nearest target without
+            // ever attempting engagement.
+            currentTarget.status = 'NON_THREAT';
+            currentTarget.verifiedAt = simTime;
+          }
+        }
+      } else {
+        rfLockTimer = Math.max(0, rfLockTimer - dt);
+      }
+    } else {
+      // HPM simulation: once the pointing/identification gate is satisfied,
+      // one response event is applied to every active drone inside the
+      // existing simulated response envelope at the same time.
+      if (wellTracked) {
+        hoverTimer += dt;
+        if (hoverTimer >= 0.10) {
+          const hpmTargets = getHpmTargets(rangeKm);
+
+          hpmTargets.forEach(d => {
+            d.status = 'DEACTIVATED';
+            d.engagedAt = simTime;
+          });
+
+          currentTarget.status = 'DEACTIVATED';
+          currentTarget.engagedAt = simTime;
+          currentTrackedId = null;
+          rfLockTimer = 0;
+          rfVerified = false;
+          hoverTimer = 0;
+          resetBearingFilter(adaptive.angle);
+        }
+      } else {
+        hoverTimer = Math.max(0, hoverTimer - dt);
+      }
+    }
+  }
+
+  return {
+    target: rAdaptive.target,
+    actualAdaptive: rAdaptive.actual,
+    actualBaseline: rBaseline.actual,
+    errAdaptive: rAdaptive.trackingErrorDeg,
+    errBaseline: rBaseline.trackingErrorDeg,
+    currentTarget,
+    hoverTimer
+  };
+}
+
+const radarCanvas = document.getElementById('radar');
+const rctx = radarCanvas.getContext('2d');
+const R = 300;
+const CENTER = { x: 320, y: 320 };
+const KM_TO_PX = R / 20;
+function kmToPx(km) { return km * KM_TO_PX; }
+
+function drawRadar(rangeKm, actualAdaptiveAng, actualBaselineAng, showBaseline, currentTarget) {
+  rctx.clearRect(0, 0, 640, 640);
+  rctx.strokeStyle = 'rgba(77,216,230,0.25)';
+  rctx.lineWidth = 1;
+  for (let km = 5; km <= 20; km += 5) {
+    rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,kmToPx(km),0,Math.PI*2); rctx.stroke();
+    rctx.fillStyle='#cfe8f0'; rctx.font='10px monospace'; rctx.fillText(km+' km',CENTER.x+kmToPx(km)+4,CENTER.y-4);
+  }
+  rctx.beginPath();
+  rctx.moveTo(CENTER.x-R,CENTER.y); rctx.lineTo(CENTER.x+R,CENTER.y);
+  rctx.moveTo(CENTER.x,CENTER.y-R); rctx.lineTo(CENTER.x,CENTER.y+R); rctx.stroke();
+
+  const shownRange = Math.min(rangeKm,20);
+  rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,kmToPx(shownRange),0,Math.PI*2);
+  rctx.fillStyle='rgba(92,214,138,0.10)'; rctx.fill();
+  rctx.strokeStyle='#5cd68a'; rctx.lineWidth=1.5; rctx.setLineDash([5,4]); rctx.stroke(); rctx.setLineDash([]);
+
+  // Commercial flights are visible for airspace awareness only.
+  aircraft.forEach(a => {
+    const dist = rangeOf(a), ang = bearingOf(a), rr = Math.min(dist, 20);
+    const px = CENTER.x + Math.cos(ang) * kmToPx(rr);
+    const py = CENTER.y + Math.sin(ang) * kmToPx(rr);
+
+    rctx.save();
+    rctx.translate(px, py);
+    // Rotate the aircraft so its nose points in its actual direction of travel.
+    const heading = Math.atan2(a.vy, a.vx);
+    rctx.rotate(heading);
+    rctx.strokeStyle = '#8fd3ff';
+    rctx.fillStyle = '#8fd3ff';
+    rctx.lineWidth = 1.5;
+    // Simple aircraft silhouette.
+    rctx.beginPath();
+    rctx.moveTo(9, 0);
+    rctx.lineTo(-6, -2);
+    rctx.lineTo(-4, 0);
+    rctx.lineTo(-6, 2);
+    rctx.closePath();
+    rctx.fill();
+    rctx.beginPath();
+    rctx.moveTo(2, 0); rctx.lineTo(-2, -7);
+    rctx.moveTo(2, 0); rctx.lineTo(-2, 7);
+    rctx.moveTo(-4, 0); rctx.lineTo(-7, -4);
+    rctx.moveTo(-4, 0); rctx.lineTo(-7, 4);
+    rctx.stroke();
+    rctx.restore();
+
+    if (currentTarget && currentTarget.id === a.id) {
+      rctx.strokeStyle = '#4dd8e6'; rctx.lineWidth = 1.5; rctx.setLineDash([3, 3]);
+      rctx.beginPath(); rctx.arc(px, py, 14, 0, Math.PI * 2); rctx.stroke(); rctx.setLineDash([]);
+    }
+
+    rctx.textAlign = 'center';
+    rctx.font = '9px monospace';
+    const isCurrent = currentTarget && currentTarget.id === a.id;
+    const statusLabel = a.status === 'NON_THREAT'
+      ? 'NON-THREAT \u2713 VERIFIED'
+      : (isCurrent ? (rfVerified ? 'NON-THREAT \u2713 VERIFIED' : `RF LOCK ${rfLockTimer.toFixed(1)}/1.0s`) : 'COMMERCIAL');
+    rctx.fillStyle = a.status === 'NON_THREAT' ? '#5cd68a' : '#8fd3ff';
+    rctx.fillText(`${a.id} ${statusLabel}`, px, py + 18);
+    rctx.font = '8px monospace';
+    rctx.fillStyle = '#6f8ca3';
+    rctx.fillText(a.altitude, px, py + 28);
+    rctx.textAlign = 'left';
+  });
+
+  // Birds are tracked as non-RF objects for situational awareness only.
+  birds.forEach(b => {
+    const dist = rangeOf(b), ang = bearingOf(b), rr = Math.min(dist, 20);
+    const px = CENTER.x + Math.cos(ang) * kmToPx(rr);
+    const py = CENTER.y + Math.sin(ang) * kmToPx(rr);
+
+    // Simple bird-like marker: small diamond + wings.
+    rctx.strokeStyle = '#d8b4fe';
+    rctx.fillStyle = '#d8b4fe';
+    rctx.lineWidth = 1.5;
+    rctx.beginPath();
+    rctx.moveTo(px, py - 5);
+    rctx.lineTo(px + 4, py);
+    rctx.lineTo(px, py + 5);
+    rctx.lineTo(px - 4, py);
+    rctx.closePath();
+    rctx.fill();
+
+    rctx.beginPath();
+    rctx.moveTo(px - 8, py - 2);
+    rctx.lineTo(px - 3, py + 1);
+    rctx.moveTo(px + 8, py - 2);
+    rctx.lineTo(px + 3, py + 1);
+    rctx.stroke();
+
+    rctx.font = '9px monospace';
+    rctx.textAlign = 'center';
+    rctx.fillStyle = '#d8b4fe';
+    rctx.fillText(`${b.id} NON-RF`, px, py + 19);
+    rctx.textAlign = 'left';
+  });
+
+  drones.forEach(d=>{
+    const dist=rangeOf(d), ang=bearingOf(d), rr=Math.min(dist,20);
+    const px=CENTER.x+Math.cos(ang)*kmToPx(rr), py=CENTER.y+Math.sin(ang)*kmToPx(rr), size=7;
+    if(d.status==='DEACTIVATED'){
+      rctx.strokeStyle='#6f8ca3'; rctx.lineWidth=2; rctx.beginPath();
+      rctx.moveTo(px-size,py-size); rctx.lineTo(px+size,py+size); rctx.moveTo(px+size,py-size); rctx.lineTo(px-size,py+size); rctx.stroke();
+    } else if(d.status==='OUT_OF_RANGE'){
+      rctx.beginPath(); rctx.moveTo(px,py-size); rctx.lineTo(px-size,py+size); rctx.lineTo(px+size,py+size); rctx.closePath(); rctx.fillStyle='#e85c4a'; rctx.fill();
+    } else {
+      rctx.beginPath(); rctx.arc(px,py,size-1,0,Math.PI*2); rctx.fillStyle='#5cd68a'; rctx.fill();
+    }
+    if(currentTarget && d.id===currentTarget.id){
+      rctx.strokeStyle='#4dd8e6'; rctx.lineWidth=1.5; rctx.setLineDash([3,3]); rctx.beginPath(); rctx.arc(px,py,14,0,Math.PI*2); rctx.stroke(); rctx.setLineDash([]);
+    }
+    rctx.font='9px monospace'; rctx.textAlign='center';
+    rctx.fillStyle=d.status==='DEACTIVATED'?'#6f8ca3':d.status==='OUT_OF_RANGE'?'#e85c4a':'#5cd68a';
+    rctx.fillText(`${d.id} ${dist.toFixed(1)}km`,px,py+21); rctx.textAlign='left';
+  });
+
+  const pointLen=kmToPx(12);
+  if(showBaseline){
+    const bx=CENTER.x+Math.cos(actualBaselineAng)*pointLen, by=CENTER.y+Math.sin(actualBaselineAng)*pointLen;
+    rctx.strokeStyle='#e85c4a'; rctx.lineWidth=1.5; rctx.setLineDash([5,4]); rctx.beginPath(); rctx.moveTo(CENTER.x,CENTER.y); rctx.lineTo(bx,by); rctx.stroke(); rctx.setLineDash([]);
+  }
+
+  // HPM response envelope: one zone covering all drones within the
+  // existing simulated range. This replaces the old single-target beam.
+  const hpmRadius=kmToPx(Math.min(rangeKm,20));
+  const hpmTargets=getHpmTargets(rangeKm);
+  const hpmPulse=1+0.045*Math.sin(simTime*8);
+  rctx.save();
+  rctx.strokeStyle=hpmTargets.length?'rgba(46,229,157,0.92)':'rgba(77,216,230,0.45)';
+  rctx.lineWidth=1.8; rctx.setLineDash([7,5]);
+  rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,hpmRadius*hpmPulse,0,Math.PI*2); rctx.stroke();
+  rctx.setLineDash([]);
+  rctx.fillStyle=hpmTargets.length?'rgba(46,229,157,0.045)':'rgba(77,216,230,0.018)';
+  rctx.beginPath(); rctx.arc(CENTER.x,CENTER.y,hpmRadius,0,Math.PI*2); rctx.fill();
+  rctx.restore();
+
+  // Keep the selected track visible for situational awareness, but the
+  // HPM gimbal vector points toward the group/zone centre.
+  const ax=CENTER.x+Math.cos(actualAdaptiveAng)*pointLen, ay=CENTER.y+Math.sin(actualAdaptiveAng)*pointLen;
+  rctx.strokeStyle='#2ee59d'; rctx.lineWidth=2.8;
+  rctx.beginPath(); rctx.moveTo(CENTER.x,CENTER.y); rctx.lineTo(ax,ay); rctx.stroke();
+
+  rctx.fillStyle='#2ee59d'; rctx.font='10px monospace';
+  rctx.fillText(`HPM ZONE ${hpmTargets.length?'ACTIVE':'STANDBY'}   ${hpmTargets.length} TARGET${hpmTargets.length===1?'':'S'} IN RANGE`,12,20);
+  rctx.fillStyle='#7893a7'; rctx.font='9px monospace';
+  rctx.fillText(`HPM GIMBAL VECTOR  ${deg(actualAdaptiveAng).toFixed(1)}°`,12,37);
+  rctx.fillText(`RESPONSE ENVELOPE  ${Math.min(rangeKm,20).toFixed(2)} km   |   SIMULTANEOUS RESPONSE`,12,52);
+
+}
+
+
+const errCanvas = document.getElementById('errChart');
+const ectx = errCanvas.getContext('2d');
+function drawErrChart(showBaseline) {
+  ectx.clearRect(0, 0, 380, 90);
+  ectx.fillStyle = '#0f1e2e';
+  ectx.fillRect(0, 0, 380, 90);
+  if (errHistoryAdaptive.length < 2) return;
+
+  const maxErr = Math.max(1, ...errHistoryAdaptive, ...(showBaseline ? errHistoryBaseline : []));
+
+  function plotLine(history, color) {
+    ectx.strokeStyle = color;
+    ectx.lineWidth = 1.5;
+    ectx.beginPath();
+    history.forEach((e, i) => {
+      const x = (i / MAX_HISTORY) * 380;
+      const y = 90 - (e / maxErr) * 80 - 5;
+      if (i === 0) ectx.moveTo(x, y); else ectx.lineTo(x, y);
+    });
+    ectx.stroke();
+  }
+  if (showBaseline) plotLine(errHistoryBaseline, '#e85c4a');
+  plotLine(errHistoryAdaptive, '#5cd68a');
+}
+
+
+const trajectoryHistory = [];
+const savedTrajectories = [];
+let trajectoryTargetId = null;
+const MAX_TRAJECTORY_POINTS = 90;
+function drawTrajectoryChart(currentTarget) {
+  
+  if (currentTarget && trajectoryTargetId !== currentTarget.id) {
+    if (trajectoryTargetId && trajectoryHistory.length > 0) {
+      savedTrajectories.push({
+        id: trajectoryTargetId,
+        points: trajectoryHistory.slice(),
+        state: 'NEUTRALIZED'
+      });
+    }
+
+    trajectoryHistory.length = 0;
+    trajectoryTargetId = currentTarget.id;
+  }
+
+  if (currentTarget) {
+    trajectoryHistory.push({
+      x: currentTarget.x,
+      y: currentTarget.y
+    });
+
+    if (trajectoryHistory.length > MAX_TRAJECTORY_POINTS) {
+      trajectoryHistory.shift();
+    }
+  }
+
+  const tracks = savedTrajectories.slice();
+
+  if (trajectoryHistory.length > 0 && trajectoryTargetId) {
+    tracks.push({
+      id: trajectoryTargetId,
+      points: trajectoryHistory,
+      state: currentTarget ? currentTarget.status : 'NEUTRALIZED'
+    });
+  }
+
+  const grid = document.getElementById('trajectoryGrid');
+
+  grid.innerHTML = '';
+
+  const maxTracks = Math.min(4, tracks.length);
+
+  for (let i = 0; i < maxTracks; i++) {
+    const track = tracks[i];
+
+    const card = document.createElement('div');
+    card.className = 'trajectory-card';
+
+    const header = document.createElement('div');
+    header.className = 'trajectory-card-header';
+
+    const left = document.createElement('span');
+    left.textContent = `TRACK ${i + 1}/4`;
+
+    const right = document.createElement('b');
+    right.textContent = `${track.id} · ${track.state || 'TRACKING'}`;
+
+    header.appendChild(left);
+    header.appendChild(right);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 260;
+    canvas.height = 90;
+
+    card.appendChild(header);
+    card.appendChild(canvas);
+    grid.appendChild(card);
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0f1e2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = 'rgba(77,216,230,0.10)';
+    ctx.lineWidth = 1;
+
+    for (let x = 20; x < canvas.width; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+
+    for (let y = 10; y < canvas.height; y += 18) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    if (track.points.length > 1) {
+      const maxR = Math.max(
+        12,
+        ...track.points.map(p => Math.hypot(p.x, p.y))
+      );
+
+      const sx = 105 / maxR;
+      const sy = 32 / maxR;
+
+      ctx.strokeStyle = '#4dd8e6';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+
+      track.points.forEach((p, j) => {
+        const px = canvas.width / 2 + p.x * sx;
+        const py = canvas.height / 2 - p.y * sy;
+
+        if (j === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      });
+
+      ctx.stroke();
+
+      const last = track.points[track.points.length - 1];
+
+      ctx.fillStyle = i === maxTracks - 1 && currentTarget
+        ? '#ffb830'
+        : '#5cd68a';
+
+      ctx.beginPath();
+      ctx.arc(
+        canvas.width / 2 + last.x * sx,
+        canvas.height / 2 - last.y * sy,
+        4,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  }
+
+  document.getElementById('trajectoryTarget').textContent =
+    currentTarget ? currentTarget.id : 'SEARCHING';
+
+  document.getElementById('trajectoryPoints').textContent =
+    `${Math.min(4, tracks.length)}/4`;
+
+  document.getElementById('trajectoryRange').textContent =
+    currentTarget
+      ? rangeOf(currentTarget).toFixed(2) + ' km'
+      : '—';
+
+  document.getElementById('trajectoryState').textContent =
+    currentTarget
+      ? currentTarget.status
+      : tracks.length
+        ? 'SEARCHING'
+        : 'SEARCHING';
+}
+
+const tempSlider = document.getElementById('tempSlider');
+const windSlider = document.getElementById('windSlider');
+const altSlider = document.getElementById('altSlider');
+const snowSlider = document.getElementById('snowSlider');
+const visibilitySlider = document.getElementById('visibilitySlider');
+const latencySlider = document.getElementById('latencySlider');
+const baselineToggle = document.getElementById('baselineToggle');
+
+
+const presetImages = {
+  sea: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80',
+  winter: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=1920&q=80',
+  extreme: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=1920&q=80'
+};
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tempSlider.value = btn.dataset.t;
+    windSlider.value = btn.dataset.w;
+    altSlider.value = btn.dataset.a;
+
+    const presetKey = btn.classList.contains('sea') ? 'sea' : btn.classList.contains('winter') ? 'winter' : 'extreme';
+    document.documentElement.style.setProperty('--bg-image', `url('${presetImages[presetKey]}')`);
+
+   
+    resetTargets();
+    seededRandom = mulberry32(42); 
+
+    updateTelemetry();
+  });
+});
+
+function updateTelemetry() {
+  const tempC = parseFloat(tempSlider.value);
+  const windKmh = parseFloat(windSlider.value);
+  const altM = parseFloat(altSlider.value);
+  const snow = parseFloat(snowSlider.value);
+  const visibility = parseFloat(visibilitySlider.value);
+  const latencyMs = parseFloat(latencySlider.value);
+
+  document.getElementById('tempVal').textContent = tempC + '°C';
+  document.getElementById('windVal').textContent = windKmh + ' km/h';
+  document.getElementById('altVal').textContent = altM + ' m';
+  document.getElementById('snowVal').textContent = snow.toFixed(2);
+  document.getElementById('visibilityVal').textContent = visibility.toFixed(2);
+  document.getElementById('latencyVal').textContent = latencyMs.toFixed(0) + ' ms';
+
+  const fMult = frictionFactorAt(tempC);
+  const maxT = maxTorqueAt(tempC, altM);
+  const density = airDensityRatio(altM);
+  const txW = txPowerAt(tempC, altM);
+  const rangeKm = maxEffectiveRangeKm(txW);
+  const neutralizedCount = drones.filter(d => d.status === "DEACTIVATED").length;
+
+  document.getElementById('frictionNum').textContent = fMult.toFixed(2) + '×';
+  document.getElementById('frictionNum').className =
+  'num ' + (fMult >= 4.0 ? 'crit' : fMult >= 2.5 ? 'warn' : 'good');
+
+  document.getElementById('torqueNum').textContent = (maxT * 100).toFixed(0) + '% capacity';
+  document.getElementById('torqueNum').className = 'num ' + (maxT < 0.6 ? 'crit' : maxT < 0.85 ? 'warn' : 'good');
+
+  document.getElementById('densityNum').textContent = (density * 100).toFixed(0) + '%';
+
+  document.getElementById('radarPdNum').textContent = (radarDetectionProbability(tempC, snow, visibility) * 100).toFixed(1) + '%';
+  
+  
+  
+  document.getElementById('cameraConfNum').textContent = (cameraConfidence(tempC, snow, visibility, latencyMs) * 100).toFixed(1) + '%';
+
+  const hpmEffectiveness = Math.max(0, Math.min(1,
+    radarDetectionProbability(tempC, snow, visibility) *
+    cameraConfidence(tempC, snow, visibility, latencyMs) *
+    (1 - Math.min(0.85, snow * 0.25 + (1 - visibility) * 0.35 + Math.max(0, latencyMs - 20) / 400))
+  ));
+  const hpmTargetsInZone = getHpmTargets(rangeKm).length;
+
+  document.getElementById('txPowerNum').textContent = (hpmEffectiveness * 100).toFixed(1) + '%';
+  document.getElementById('rangeNum').textContent = rangeKm.toFixed(2) + ' km';
+  const totalNeutralized = neutralizedCount + (yoloLink.neutralizedCount || 0);
+  const totalKnownThreats = drones.length + (yoloLink.neutralizedCount || 0);
+  document.getElementById('dronesNum').textContent = totalNeutralized + ' / ' + totalKnownThreats;
+  document.getElementById('trackingNum').textContent = hpmTargetsInZone > 0 ? 'ZONE CENTER' : '—';
+  document.getElementById('rfStatusNum').textContent = (yoloLink.target && yoloLink.target.yolo)
+    ? (yoloLink.target.status==='DEACTIVATED' ? 'HPM NEUTRALIZED' : (yoloLink.target.status==='NON_THREAT' ? 'NON-THREAT RELEASED' : 'ROBOFLOW '+(yoloLink.target.displayClass||'TRACK')))
+    : (rfVerified ? 'VERIFIED' : (currentTrackedId ? 'LOCKING' : 'IDLE'));
+
+  const badge = document.getElementById('statusBadge');
+  if (currentTrackedId && rfVerified) {
+    badge.textContent = hpmTargetsInZone > 0 ? 'HPM ZONE READY' : 'ZONE CLEAR';
+    badge.className = hpmTargetsInZone > 0 ? 'status-badge active' : 'status-badge degraded';
+  } else if (currentTrackedId) {
+    badge.textContent = 'HPM ZONE / IDENTIFYING';
+    badge.className = 'status-badge degraded';
+  } else {
+    badge.textContent = 'STANDBY';
+    badge.className = 'status-badge degraded';
+  }
+
+  return { tempC, windKmh, altM, snow, visibility, latencyMs, rangeKm };
+}
+
+
+const VIDEO_SCENARIOS = [
+  {
+    title:'SEA LEVEL DRONE VIDEO 01',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/1.mp4',
+    source:'LOCAL MP4 · VIDEO 01',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 02',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/2.mp4',
+    source:'LOCAL MP4 · VIDEO 02',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 03',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/3.mp4',
+    source:'LOCAL MP4 · VIDEO 03',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 04',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/4.mp4',
+    source:'LOCAL MP4 · VIDEO 04',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 05',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/5.mp4',
+    source:'LOCAL MP4 · VIDEO 05',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 06',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/6.mp4',
+    source:'LOCAL MP4 · VIDEO 06',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 07',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/7.mp4',
+    source:'LOCAL MP4 · VIDEO 07',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 08',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/8.mp4',
+    source:'LOCAL MP4 · VIDEO 08',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 09',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/9.mp4',
+    source:'LOCAL MP4 · VIDEO 09',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 10',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/10.mp4',
+    source:'LOCAL MP4 · VIDEO 10',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 11',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/11.mp4',
+    source:'LOCAL MP4 · VIDEO 11',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 12',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/12.mp4',
+    source:'LOCAL MP4 · VIDEO 12',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 13',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/13.mp4',
+    source:'LOCAL MP4 · VIDEO 13',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 14',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/14.mp4',
+    source:'LOCAL MP4 · VIDEO 14',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 15',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/15.mp4',
+    source:'LOCAL MP4 · VIDEO 15',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 16',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/16.mp4',
+    source:'LOCAL MP4 · VIDEO 16',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 17',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/17.mp4',
+    source:'LOCAL MP4 · VIDEO 17',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 18',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/18.mp4',
+    source:'LOCAL MP4 · VIDEO 18',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 19',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/19.mp4',
+    source:'LOCAL MP4 · VIDEO 19',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  },
+  {
+    title:'SEA LEVEL DRONE VIDEO 20',
+    scenario:'SEA LEVEL / NORMAL CONDITIONS',
+    temp:20, wind:10, alt:0, snow:0.00, visibility:0.98, latency:30,
+    video:'./videos/20.mp4',
+    source:'LOCAL MP4 · VIDEO 20',
+    conditionNote:'FIXED SEA LEVEL CONDITION · PARAMETERS LOCKED'
+  }
+];
+
+const videoLibraryModal = document.getElementById('videoLibraryModal');
+const videoOps = document.getElementById('videoOps');
+const fieldVideo = document.getElementById('fieldVideo');
+const videoTrackCanvas = document.getElementById('videoTrackCanvas');
+const videoCvCanvas = document.getElementById('videoCvCanvas');
+const videoTrackCtx = videoTrackCanvas.getContext('2d');
+const videoCvCtx = videoCvCanvas.getContext('2d', {willReadFrequently:true});
+videoCvCanvas.width = 640;
+videoCvCanvas.height = 512;
+const videoGimbal = { angle:0, vel:0, bias:0, integral:0, prevError:0, estBias:0 };
+let videoLastTarget = null;
+let videoLastMeasurementTime = 0;
+let videoPrevGray = null;
+const videoTrajectory = [];
+const MAX_VIDEO_TRAJECTORY_POINTS = 180;
+const videoTrajectoryCanvas = document.getElementById('videoTrajectoryCanvas');
+const videoTrajectoryCtx = videoTrajectoryCanvas.getContext('2d');
+const videoGrid = document.getElementById('videoGrid');
+const videoSelectBtn = document.getElementById('videoSelectBtn');
+const videoTargetStatus = document.getElementById('videoTargetStatus');
+let activeVideoScenario = null;
+let videoHudTimer = null;
+let videoTrackingRAF = null;
+let videoNeutralized = false;
+let videoLockStart = 0;
+
+// Exact folder structure: SIH/dashboard20.html + SIH/videos/1.mp4 ... 20.mp4.
+// Therefore every local video path is ./videos/<number>.mp4
+
+function renderVideoLibrary(){
+  videoGrid.innerHTML = VIDEO_SCENARIOS.map((v,i)=>{
+    return `<div class="video-card" data-video-index="${i}">
+      <div class="video-thumb"><div style="padding:22px;color:#4dd8e6;font-family:monospace;font-size:15px;line-height:1.7;">SEA LEVEL FIELD VIDEO<br>LOCAL MP4 · VIDEO ${String(i+1).padStart(2,'0')}<br><span style="color:#8da4b5;font-size:12px;">FRAME-BY-FRAME DRONE TRACKING</span></div><div class="video-play">▶</div></div>
+      <div class="video-card-body"><div class="video-card-title">${v.title}</div>
+      <div class="video-tags"><span class="video-tag">${v.scenario}</span><span class="video-tag">20°C</span><span class="video-tag">10 km/h</span><span class="video-tag">ALT 0 m</span></div></div>
+    </div>`;
+  }).join('');
+  videoGrid.querySelectorAll('.video-card').forEach(card=>card.addEventListener('click',()=>openFieldVideo(Number(card.dataset.videoIndex))));
+}
+
+function resizeVideoTrackCanvas(){
+  const rect=videoTrackCanvas.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  videoTrackCanvas.width=Math.max(1,Math.round(rect.width*dpr));
+  videoTrackCanvas.height=Math.max(1,Math.round(rect.height*dpr));
+}
+
+function clearVideoTracking(){
+  videoTrackCtx.clearRect(0,0,videoTrackCanvas.width,videoTrackCanvas.height);
+}
+
+function clearVideoTrajectory(){
+  videoTrajectory.length = 0;
+  videoTrajectoryCtx.clearRect(0,0,videoTrajectoryCanvas.width,videoTrajectoryCanvas.height);
+}
+
+function drawVideoTrajectory(){
+  const w=videoTrajectoryCanvas.width, h=videoTrajectoryCanvas.height;
+  videoTrajectoryCtx.clearRect(0,0,w,h);
+  videoTrajectoryCtx.save();
+  videoTrajectoryCtx.strokeStyle='rgba(77,216,230,.12)';
+  videoTrajectoryCtx.lineWidth=1;
+  videoTrajectoryCtx.strokeRect(.5,.5,w-1,h-1);
+  videoTrajectoryCtx.beginPath();
+  videoTrajectoryCtx.moveTo(w/2,4); videoTrajectoryCtx.lineTo(w/2,h-4);
+  videoTrajectoryCtx.moveTo(4,h/2); videoTrajectoryCtx.lineTo(w-4,h/2);
+  videoTrajectoryCtx.stroke();
+  if(videoTrajectory.length>1){
+    videoTrajectoryCtx.beginPath();
+    videoTrajectory.forEach((pt,i)=>{
+      const x=pt.x*(w-8)+4, y=pt.y*(h-8)+4;
+      if(i===0) videoTrajectoryCtx.moveTo(x,y); else videoTrajectoryCtx.lineTo(x,y);
+    });
+    videoTrajectoryCtx.strokeStyle='#4dd8e6';
+    videoTrajectoryCtx.lineWidth=1.5;
+    videoTrajectoryCtx.stroke();
+    const last=videoTrajectory[videoTrajectory.length-1];
+    const lx=last.x*(w-8)+4, ly=last.y*(h-8)+4;
+    videoTrajectoryCtx.beginPath();
+    videoTrajectoryCtx.arc(lx,ly,3.5,0,Math.PI*2);
+    videoTrajectoryCtx.strokeStyle='#2ee59d';
+    videoTrajectoryCtx.lineWidth=1.5;
+    videoTrajectoryCtx.stroke();
+  }
+  videoTrajectoryCtx.fillStyle='#6f8ca3';
+  videoTrajectoryCtx.font='7px monospace';
+  videoTrajectoryCtx.fillText('VIDEO X/Y PATH',7,h-6);
+  videoTrajectoryCtx.restore();
+}
+
+function processVideoFrame(){
+  if(!activeVideoScenario || videoOps.classList.contains('open')===false || fieldVideo.readyState < 2){
+    videoTrackingRAF=requestAnimationFrame(processVideoFrame);
+    return;
+  }
+
+  const vw=videoCvCanvas.width, vh=videoCvCanvas.height;
+  videoCvCtx.drawImage(fieldVideo,0,0,vw,vh);
+  const img=videoCvCtx.getImageData(0,0,vw,vh);
+  const p=img.data;
+
+  clearVideoTracking();
+  let detected=false;
+  let targetX=0,targetY=0,targetW=0,targetH=0;
+
+  // The difficult clips have a bright background, so brightness alone is not
+  // reliable. Use TWO independent cues:
+  //   1) reddish/yellow drone-light appearance;
+  //   2) frame-to-frame motion of the physical moving object.
+  // Continuity from the previous frame is deliberately weighted heavily so
+  // stationary/background lights are not allowed to steal the lock.
+  const warm=new Uint8Array(vw*vh);
+  const gray=new Uint8Array(vw*vh);
+  const motion=new Uint8Array(vw*vh);
+  for(let y=1;y<vh-1;y++){
+    for(let x=1;x<vw-1;x++){
+      const i=y*vw+x, k=i*4;
+      const r=p[k],g=p[k+1],b=p[k+2];
+      const lum=0.299*r+0.587*g+0.114*b;
+      gray[i]=lum;
+      if(lum>105 && r>145 && g>65 && b<170 && r>b*1.16 && g>b*0.98){
+        warm[i]=1;
+      }
+      if(videoPrevGray){
+        const d=Math.abs(lum-videoPrevGray[i]);
+        // Ignore tiny compression noise, but retain moving silhouettes.
+        if(d>20) motion[i]=1;
+      }
+    }
+  }
+
+  const seen=new Uint8Array(vw*vh);
+  const qx=new Int32Array(vw*vh), qy=new Int32Array(vw*vh);
+  const comps=[];
+
+  function collect(mask,kind){
+    for(let y=1;y<vh-1;y++){
+      for(let x=1;x<vw-1;x++){
+        const idx=y*vw+x;
+        if(seen[idx] || !mask[idx]) continue;
+        let head=0,tail=0,count=0,sxSum=0,sySum=0,minCX=x,maxCX=x,minCY=y,maxCY=y;
+        qx[tail]=x; qy[tail]=y; tail++; seen[idx]=1;
+        while(head<tail){
+          const cx=qx[head],cy=qy[head]; head++;
+          count++; sxSum+=cx; sySum+=cy;
+          if(cx<minCX)minCX=cx; if(cx>maxCX)maxCX=cx;
+          if(cy<minCY)minCY=cy; if(cy>maxCY)maxCY=cy;
+          for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+            if(!dx&&!dy) continue;
+            const nx=cx+dx,ny=cy+dy;
+            if(nx<=0||ny<=0||nx>=vw-1||ny>=vh-1) continue;
+            const ni=ny*vw+nx;
+            if(!seen[ni]&&mask[ni]){seen[ni]=1;qx[tail]=nx;qy[tail]=ny;tail++;}
+          }
+        }
+        const cw=maxCX-minCX+1,ch=maxCY-minCY+1;
+        const maxSize=kind==='motion'?7000:3000;
+        if(count<3||count>maxSize||cw>180||ch>140) continue;
+        const cx=sxSum/count,cy=sySum/count;
+        const compact=count/Math.max(1,cw*ch);
+        // Measure how much warm/reddish evidence exists inside this moving box.
+        let warmCount=0, sampleCount=0;
+        const x0=Math.max(1,minCX),x1=Math.min(vw-2,maxCX);
+        const y0=Math.max(1,minCY),y1=Math.min(vh-2,maxCY);
+        for(let yy=y0;yy<=y1;yy++){
+          for(let xx=x0;xx<=x1;xx++){
+            sampleCount++;
+            if(warm[yy*vw+xx]) warmCount++;
+          }
+        }
+        comps.push({kind,count,cx,cy,w:cw,h:ch,compact,warmRatio:sampleCount?warmCount/sampleCount:0});
+      }
+    }
+  }
+
+  // Warm-light candidates and motion candidates are evaluated separately.
+  // Resetting `seen` between passes is intentional: a target can be visible
+  // as warm light OR only as motion against a bright background.
+  collect(warm,'warm');
+  seen.fill(0);
+  if(videoPrevGray) collect(motion,'motion');
+
+  let predicted=null;
+  if(videoLastTarget){
+    predicted={x:videoLastTarget.x,y:videoLastTarget.y};
+    if(videoLastTarget.vx!==undefined){
+      predicted.x+=Math.max(-80,Math.min(80,videoLastTarget.vx*2.5));
+      predicted.y+=Math.max(-60,Math.min(60,videoLastTarget.vy*2.5));
+    }
+  }
+
+  comps.forEach(c=>{
+    const dist=predicted?Math.hypot(c.cx-predicted.x,c.cy-predicted.y):9999;
+    const continuity=predicted?Math.max(0,1-dist/230):0;
+    const motionScore=c.kind==='motion'?Math.min(1,c.count/180):0;
+    const warmScore=Math.min(1,c.warmRatio*5);
+    const compactScore=Math.min(1,c.compact*4);
+    const sizeScore=Math.max(0,1-Math.abs(Math.log(Math.max(1,c.count)/120))/4);
+    const edgePenalty=(c.cy>vh*0.93)?0.35:1;
+
+    if(c.kind==='warm'){
+      c.score=(0.28*warmScore)+(0.16*compactScore)+(0.48*continuity)+(0.08*sizeScore);
+    }else{
+      // On bright-background clips motion is the main discriminator.
+      c.score=(0.50*motionScore)+(0.15*compactScore)+(0.27*continuity)+(0.08*warmScore);
+    }
+    c.score*=edgePenalty;
+    if(predicted && dist>260) c.score*=0.05;
+  });
+
+  comps.sort((a,b)=>b.score-a.score);
+  if(comps.length){
+    const c=comps[0];
+    // Existing tracks may accept a lower-confidence motion measurement,
+    // while a new track needs stronger evidence to avoid background lights.
+    const threshold=videoLastTarget ? 0.14 : 0.34;
+    if(c.score>=threshold){
+      targetX=c.cx; targetY=c.cy;
+      targetW=Math.max(12,Math.min(150,c.w+10));
+      targetH=Math.max(12,Math.min(120,c.h+10));
+      detected=true;
+    }
+  }
+
+  // If the target briefly disappears, keep the last position only long enough
+  // for the next motion frame to reacquire it.
+  if(!detected && videoLastTarget && performance.now()-videoLastTarget.t<280){
+    targetX=videoLastTarget.x; targetY=videoLastTarget.y;
+    targetW=videoLastTarget.w; targetH=videoLastTarget.h;
+    detected=true;
+  }
+
+  // Save this frame for temporal tracking after all comparisons are complete.
+  videoPrevGray=gray;
+
+  if(detected){
+    const now=performance.now();
+    const imageDt=videoLastMeasurementTime?Math.max(0.016,Math.min(0.12,(now-videoLastMeasurementTime)/1000)):0.033;
+    videoLastMeasurementTime=now;
+    const targetAng=(targetX/vw-0.5)*120*Math.PI/180;
+    const targetRate=videoLastTarget?wrapAngle(targetAng-videoLastTarget.angle)/imageDt:0;
+
+    const physics=stepAxis(videoGimbal,20,10,0,true,targetAng,targetRate);
+    const prevTracked=videoLastTarget;
+    const vx=prevTracked?(targetX-prevTracked.x)/imageDt:0;
+    const vy=prevTracked?(targetY-prevTracked.y)/imageDt:0;
+    videoLastTarget={x:targetX,y:targetY,w:targetW,h:targetH,t:now,angle:targetAng,vx,vy};
+
+    videoTrajectory.push({x:targetX/vw,y:targetY/vh});
+    if(videoTrajectory.length>MAX_VIDEO_TRAJECTORY_POINTS) videoTrajectory.shift();
+    drawVideoTrajectory();
+
+    const stageW=videoTrackCanvas.width,stageH=videoTrackCanvas.height;
+    const videoAspect=vw/vh,stageAspect=stageW/stageH;
+    let renderW,renderH,offsetX,offsetY;
+    if(stageAspect>videoAspect){renderH=stageH;renderW=renderH*videoAspect;offsetX=(stageW-renderW)/2;offsetY=0;}
+    else{renderW=stageW;renderH=renderW/videoAspect;offsetX=0;offsetY=(stageH-renderH)/2;}
+    const sx=renderW/vw,sy=renderH/vh;
+    const cx=offsetX+targetX*sx,cy=offsetY+targetY*sy;
+    const boxW=Math.max(34,targetW*sx),boxH=Math.max(24,targetH*sy);
+
+    videoTrackCtx.save();
+    videoTrackCtx.strokeStyle=videoNeutralized?'#2ee59d':'#4dd8e6';
+    videoTrackCtx.lineWidth=2;
+    videoTrackCtx.strokeRect(cx-boxW/2,cy-boxH/2,boxW,boxH);
+    videoTrackCtx.beginPath();
+    videoTrackCtx.arc(cx,cy,11,0,Math.PI*2);
+    videoTrackCtx.moveTo(cx-28,cy);videoTrackCtx.lineTo(cx+28,cy);
+    videoTrackCtx.moveTo(cx,cy-28);videoTrackCtx.lineTo(cx,cy+28);videoTrackCtx.stroke();
+    videoTrackCtx.font='9px monospace';
+    videoTrackCtx.fillStyle=videoNeutralized?'#2ee59d':'#4dd8e6';
+    videoTrackCtx.fillText(videoNeutralized?'DRONE · NEUTRALIZED (SIM)':'DRONE · TRACKED',cx+boxW/2+6,cy-7);
+    videoTrackCtx.fillText('FRAME LOCK',cx+boxW/2+6,cy+7);
+    videoTrackCtx.restore();
+
+    if(!videoNeutralized){
+      if(!videoLockStart) videoLockStart=now;
+      const lockSeconds=(now-videoLockStart)/1000;
+      if(lockSeconds>=1.5&&physics.trackingErrorDeg<=GIMBAL_SEVERE_ERROR_DEG){
+        videoNeutralized=true;
+        videoTargetStatus.textContent='TARGET LOCKED · SIMULATED NEUTRALIZATION';
+        videoTargetStatus.classList.add('neutralized');
+        document.getElementById('hudNeutral').textContent='NEUTRALIZED (SIM)';
+        document.getElementById('hudNeutral').className='good';
+      }else{
+        videoTargetStatus.textContent='FRAME TRACKER: LOCKED · '+lockSeconds.toFixed(1)+' s';
+      }
+    }
+
+    const radarPD=radarDetectionProbability(20,0,0.98);
+    const thermal=cameraConfidence(20,0,0.98,30);
+    document.getElementById('hudTrack').textContent=videoNeutralized?'VIDEO DRONE · NEUTRALIZED':'VIDEO DRONE · TRACKED';
+    document.getElementById('hudError').textContent=physics.trackingErrorDeg.toFixed(3)+'° error';
+    document.getElementById('hudVector').textContent=deg(targetAng).toFixed(1)+'°';
+    document.getElementById('hudRadar').textContent=(radarPD*100).toFixed(1)+'%';
+    document.getElementById('hudThermal').textContent=(thermal*100).toFixed(1)+'%';
+    document.getElementById('hudRF').textContent='DRONE CANDIDATE';
+  }else{
+    videoLastMeasurementTime=0;
+    videoLockStart=0;
+    videoTargetStatus.textContent='FRAME TRACKER: SEARCHING';
+    document.getElementById('hudTrack').textContent='SEARCHING VIDEO FRAMES';
+    document.getElementById('hudRF').textContent='SEARCHING';
+  }
+
+  videoTrackingRAF=requestAnimationFrame(processVideoFrame);
+}
+function openFieldVideo(index){
+  activeVideoScenario = VIDEO_SCENARIOS[index];
+  videoLibraryModal.classList.remove('open');
+  const v = activeVideoScenario;
+
+  // Exact local path: dashboard20.html and the videos/ folder are siblings.
+  // Example: SIH/dashboard20.html -> SIH/videos/5.mp4
+  fieldVideo.pause();
+  fieldVideo.removeAttribute('src');
+  fieldVideo.load();
+  fieldVideo.src = v.video;
+  fieldVideo.load();
+  fieldVideo.currentTime = 0;
+  videoNeutralized=false;
+  videoLockStart=0;
+  videoLastTarget=null;
+  videoLastMeasurementTime=0;
+  videoPrevGray=null;
+  clearVideoTrajectory();
+  Object.assign(videoGimbal,{angle:0,vel:0,bias:0,integral:0,prevError:0,estBias:0});
+  videoTargetStatus.textContent='FRAME TRACKER: STARTING';
+  videoTargetStatus.classList.remove('neutralized');
+  document.getElementById('hudNeutral').textContent='TRACKING';
+  document.getElementById('hudNeutral').className='warn';
+
+  document.getElementById('hudScenario').textContent=v.scenario;
+  document.getElementById('hudTemp').textContent=v.temp+'°C';
+  document.getElementById('hudWind').textContent=v.wind+' km/h';
+  document.getElementById('hudAlt').textContent=v.alt+' m';
+  document.getElementById('hudSnow').textContent=v.snow.toFixed(2);
+  document.getElementById('hudVisibility').textContent=v.visibility.toFixed(2);
+  document.getElementById('hudLatency').textContent=v.latency+' ms';
+  document.getElementById('videoModeLabel').textContent = `${v.source} · ${v.conditionNote}`;
+  videoOps.classList.add('open');
+  resizeVideoTrackCanvas();
+  document.querySelectorAll('#tempSlider,#windSlider,#altSlider,#snowSlider,#visibilitySlider,#latencySlider,#baselineToggle').forEach(el=>el.disabled=true);
+  videoHudTimer=setInterval(updateVideoHud,250);
+  const startVideo = () => {
+    fieldVideo.play().catch(()=>{
+      // Browser autoplay may be blocked; controls remain available.
+    });
+  };
+  if(fieldVideo.readyState >= 2) startVideo();
+  else fieldVideo.addEventListener('loadeddata', startVideo, {once:true});
+  cancelAnimationFrame(videoTrackingRAF);
+  videoTrackingRAF=requestAnimationFrame(processVideoFrame);
+  if(videoOps.requestFullscreen){ videoOps.requestFullscreen().catch(()=>{}); }
+}
+
+function updateVideoHud(){
+  if(!activeVideoScenario) return;
+  // Keep the video HUD tied to the selected fixed condition, while the
+  // tracking rows are updated directly by the frame tracker.
+  document.getElementById('hudRadar').textContent = document.getElementById('hudRadar').textContent || '94.0%';
+}
+
+function closeFieldVideo(){
+  if(videoHudTimer) clearInterval(videoHudTimer);
+  videoHudTimer=null;
+  cancelAnimationFrame(videoTrackingRAF);
+  videoTrackingRAF=null;
+  fieldVideo.pause();
+  fieldVideo.removeAttribute('src');
+  fieldVideo.load();
+  clearVideoTracking();
+  videoOps.classList.remove('open');
+  activeVideoScenario=null;
+  videoNeutralized=false;
+  videoLockStart=0;
+  videoLastTarget=null;
+  videoLastMeasurementTime=0;
+  videoPrevGray=null;
+  clearVideoTrajectory();
+  videoTargetStatus.classList.remove('neutralized');
+  document.querySelectorAll('#tempSlider,#windSlider,#altSlider,#snowSlider,#visibilitySlider,#latencySlider,#baselineToggle').forEach(el=>el.disabled=false);
+  if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+}
+
+
+fieldVideo.addEventListener('error',()=>{
+  const code = fieldVideo.error ? fieldVideo.error.code : 0;
+  videoTargetStatus.textContent = `VIDEO LOAD ERROR · ${vPathForError(activeVideoScenario)}`;
+});
+function vPathForError(v){ return v ? v.video : './videos/<number>.mp4'; }
+
+fieldVideo.addEventListener('ended',()=>{
+  if(activeVideoScenario){
+    fieldVideo.currentTime=0;
+    fieldVideo.play().catch(()=>{});
+    videoNeutralized=false;
+    videoLockStart=0;
+    videoLastTarget=null;
+    videoLastMeasurementTime=0;
+    videoPrevGray=null;
+    clearVideoTrajectory();
+    Object.assign(videoGimbal,{angle:0,vel:0,bias:0,integral:0,prevError:0,estBias:0});
+    videoTargetStatus.textContent='FRAME TRACKER: REACQUIRING';
+    videoTargetStatus.classList.remove('neutralized');
+    document.getElementById('hudNeutral').textContent='TRACKING';
+    document.getElementById('hudNeutral').className='warn';
+  }
+});
+
+//videoSelectBtn.addEventListener('click',()=>{ renderVideoLibrary(); videoLibraryModal.classList.add('open'); });
+document.getElementById('closeVideoLibrary').addEventListener('click',()=>videoLibraryModal.classList.remove('open'));
+document.getElementById('exitVideoMode').addEventListener('click',closeFieldVideo);
+videoOps.addEventListener('dblclick',closeFieldVideo);
+window.addEventListener('resize',resizeVideoTrackCanvas);
+
+
+
+/* ================================================================
+   STEP 6 — 3D EXTENDED KALMAN FILTER
+   State: [x, y, z, vx, vy, vz] in km / km/s.
+   Measurement: [range, azimuth, elevation] from a simulated radar.
+   This is a modular simulation layer; the existing gimbal controller
+   remains unchanged. Real radar measurements can replace z/radar input later.
+   ================================================================ */
+const ekfCanvas = document.getElementById('ekfCanvas');
+const ekfCtx = ekfCanvas.getContext('2d');
+const mdCanvas = document.getElementById('microDopplerCanvas');
+const mdCtx = mdCanvas.getContext('2d');
+
+const ekf = {
+  initialized:false, targetId:null, x:new Array(6).fill(0), P:null, lastRangeResidual:0
+};
+const EKF_DT = dt;
+
+function matIdentity(n, scale=1){
+  const A=Array.from({length:n},()=>Array(n).fill(0));
+  for(let i=0;i<n;i++) A[i][i]=scale;
+  return A;
+}
+function matMul(A,B){
+  const r=A.length,c=B[0].length,k=B.length;
+  const C=Array.from({length:r},()=>Array(c).fill(0));
+  for(let i=0;i<r;i++) for(let j=0;j<c;j++){ let v=0; for(let q=0;q<k;q++) v+=A[i][q]*B[q][j]; C[i][j]=v; }
+  return C;
+}
+function matT(A){ return A[0].map((_,j)=>A.map(r=>r[j])); }
+function matAdd(A,B){ return A.map((r,i)=>r.map((v,j)=>v+B[i][j])); }
+function matSub(A,B){ return A.map((r,i)=>r.map((v,j)=>v-B[i][j])); }
+function matScale(A,s){ return A.map(r=>r.map(v=>v*s)); }
+function matVec(A,v){ return A.map(r=>r.reduce((sum,a,j)=>sum+a*v[j],0)); }
+function inv3(M){
+  const a=M[0][0],b=M[0][1],c=M[0][2],d=M[1][0],e=M[1][1],f=M[1][2],g=M[2][0],h=M[2][1],i=M[2][2];
+  let det=a*(e*i-f*h)-b*(d*i-f*g)+c*(d*h-e*g);
+  if(Math.abs(det)<1e-12) det=det<0?-1e-12:1e-12;
+  return [
+    [(e*i-f*h)/det,(c*h-b*i)/det,(b*f-c*e)/det],
+    [(f*g-d*i)/det,(a*i-c*g)/det,(c*d-a*f)/det],
+    [(d*h-e*g)/det,(b*g-a*h)/det,(a*e-b*d)/det]
+  ];
+}
+function angleResidual(a,b){ return wrapAngle(a-b); }
+
+function ekfTrueState(target){
+  if(!target) return null;
+  const z = 0.80 + 0.22*Math.sin(0.42*simTime + (target.phase||0));
+  const vz = 0.22*0.42*Math.cos(0.42*simTime + (target.phase||0));
+  return [target.x,target.y,z,target.vx,target.vy,vz];
+}
+
+function ekfMeasurementFromTruth(truth,tempC,snow,visibility,latencyMs){
+  const [x,y,z]=truth;
+  const horiz=Math.max(1e-6,Math.hypot(x,y));
+  const range=Math.hypot(horiz,z);
+  const az=Math.atan2(y,x);
+  const el=Math.atan2(z,horiz);
+  const env=0.35*snow+0.30*(1-visibility)+0.20*coldness(tempC)+0.15*((latencyMs-20)/80);
+  const rangeSigma=0.025+0.055*env;
+  const angleSigma=(0.35+1.25*env)*Math.PI/180;
+  return [
+    range + (seededRandom()-.5)*2*rangeSigma,
+    wrapAngle(az + (seededRandom()-.5)*2*angleSigma),
+    el + (seededRandom()-.5)*2*angleSigma
+  ];
+}
+
+function ekfH(x){
+  const X=x[0],Y=x[1],Z=x[2];
+  const rho2=Math.max(1e-9,X*X+Y*Y);
+  const rho=Math.sqrt(rho2);
+  const r2=Math.max(1e-9,rho2+Z*Z);
+  const r=Math.sqrt(r2);
+  return [
+    [X/r,Y/r,Z/r,0,0,0],
+    [-Y/rho2,X/rho2,0,0,0,0],
+    [-X*Z/(r2*rho),-Y*Z/(r2*rho),rho/r2,0,0,0]
+  ];
+}
+function ekfPredict(x,P){
+  const F=matIdentity(6);
+  F[0][3]=EKF_DT; F[1][4]=EKF_DT; F[2][5]=EKF_DT;
+  const qPos=0.000004, qVel=0.00005;
+  const Q=matIdentity(6);
+  for(let i=0;i<3;i++){ Q[i][i]=qPos; Q[i+3][i+3]=qVel; }
+  const xp=matVec(F,x);
+  const Pp=matAdd(matMul(matMul(F,P),matT(F)),Q);
+  return {x:xp,P:Pp};
+}
+function ekfPredictMeasurement(x){
+  const X=x[0],Y=x[1],Z=x[2];
+  const rho=Math.max(1e-9,Math.hypot(X,Y));
+  return [Math.hypot(rho,Z),Math.atan2(Y,X),Math.atan2(Z,rho)];
+}
+function ekfUpdate(pred,z,R){
+  const H=ekfH(pred.x);
+  const hx=ekfPredictMeasurement(pred.x);
+  const innovation=[z[0]-hx[0],angleResidual(z[1],hx[1]),angleResidual(z[2],hx[2])];
+  const S=matAdd(matMul(matMul(H,pred.P),matT(H)),R);
+  const Sinv=inv3(S);
+  const K=matMul(matMul(pred.P,matT(H)),Sinv);
+  const dx=matVec(K,innovation);
+  const xu=pred.x.map((v,i)=>v+dx[i]);
+  const I=matIdentity(6);
+  const KH=matMul(K,H);
+  const Pu=matMul(matSub(I,KH),pred.P);
+  return {x:xu,P:Pu,innovation};
+}
+function resetEKF(target){
+  const t=ekfTrueState(target);
+  if(!t) return;
+  ekf.targetId=target.id; ekf.initialized=true;
+  ekf.x=t.slice();
+  ekf.P=matIdentity(6);
+  ekf.P[0][0]=ekf.P[1][1]=ekf.P[2][2]=0.16;
+  ekf.P[3][3]=ekf.P[4][4]=ekf.P[5][5]=0.04;
+  ekf.lastRangeResidual=0;
+}
+function updateEKF(currentTarget,tempC,snow,visibility,latencyMs){
+  if(!currentTarget){ ekf.initialized=false; ekf.targetId=null; return null; }
+  if(!ekf.initialized || ekf.targetId!==currentTarget.id) resetEKF(currentTarget);
+  const truth=ekfTrueState(currentTarget);
+  const z=ekfMeasurementFromTruth(truth,tempC,snow,visibility,latencyMs);
+  const env=0.35*snow+0.30*(1-visibility)+0.20*coldness(tempC)+0.15*((latencyMs-20)/80);
+  const angleSigma=(0.35+1.25*env)*Math.PI/180;
+  const rangeSigma=0.025+0.055*env;
+  const R=[[rangeSigma**2,0,0],[0,angleSigma**2,0],[0,0,angleSigma**2]];
+  const pred=ekfPredict(ekf.x,ekf.P);
+  const upd=ekfUpdate(pred,z,R);
+  ekf.x=upd.x; ekf.P=upd.P;
+  ekf.lastRangeResidual=upd.innovation[0];
+  return {truth,measurement:z,estimate:ekf.x.slice()};
+}
+
+function drawEKF(result){
+  const w=ekfCanvas.width,h=ekfCanvas.height;
+  ekfCtx.clearRect(0,0,w,h);
+  ekfCtx.fillStyle='rgba(5,15,24,.85)'; ekfCtx.fillRect(0,0,w,h);
+  ekfCtx.strokeStyle='rgba(77,216,230,.12)'; ekfCtx.lineWidth=1;
+  ekfCtx.strokeRect(.5,.5,w-1,h-1);
+  ekfCtx.beginPath(); ekfCtx.moveTo(w/2,5); ekfCtx.lineTo(w/2,h-5); ekfCtx.moveTo(5,h-22); ekfCtx.lineTo(w-5,h-22); ekfCtx.stroke();
+  if(!result){ ekfCtx.fillStyle='#6f8ca3'; ekfCtx.font='8px monospace'; ekfCtx.fillText('WAITING FOR TRACK',7,14); return; }
+  const pts=[result.truth,result.measurementToCartesian||null,result.estimate];
+  const maxR=Math.max(2, ...pts.filter(Boolean).map(p=>Math.hypot(p[0],p[1])));
+  const sx=(w-20)/(2*maxR), sy=(h-35)/(2*maxR), scale=Math.min(sx,sy);
+  const ox=w/2, oy=h-22;
+  const px=(x)=>ox+x*scale, py=(y)=>oy-y*scale;
+  const drawPt=(p,stroke,fill,r)=>{ const x=px(p[0]),y=py(p[1]); ekfCtx.beginPath(); ekfCtx.arc(x,y,r,0,Math.PI*2); ekfCtx.strokeStyle=stroke; ekfCtx.stroke(); if(fill){ekfCtx.fillStyle=fill;ekfCtx.fill();} };
+  drawPt(result.truth,'#e6a94d',null,3.5);
+  drawPt(result.measurementToCartesian,'#e85c4a',null,3);
+  drawPt(result.estimate,'#2ee59d',null,3.5);
+  ekfCtx.setLineDash([3,3]); ekfCtx.strokeStyle='rgba(46,229,157,.45)';
+  ekfCtx.beginPath(); ekfCtx.moveTo(px(result.truth[0]),py(result.truth[1])); ekfCtx.lineTo(px(result.estimate[0]),py(result.estimate[1])); ekfCtx.stroke(); ekfCtx.setLineDash([]);
+  ekfCtx.fillStyle='#6f8ca3'; ekfCtx.font='7px monospace';
+  ekfCtx.fillText('XY PROJECTION · km',7,h-7);
+  ekfCtx.fillStyle='#e6a94d'; ekfCtx.fillText('T',w-44,14);
+  ekfCtx.fillStyle='#e85c4a'; ekfCtx.fillText('M',w-30,14);
+  ekfCtx.fillStyle='#2ee59d'; ekfCtx.fillText('E',w-16,14);
+}
+
+/* ================================================================
+   STEP 7 — VIDEO-DRIVEN SIMULATED FMCW MICRO-DOPPLER SPECTROGRAM
+   Generates a synthetic radar return containing body Doppler + periodic
+   rotor modulation + noise, then performs an STFT/DFT to render a true
+   time-frequency spectrogram.
+   ================================================================ */
+let mdAccumulator=0;
+function dftMagnitude(signal,start,N,k){
+  let re=0,im=0;
+  for(let n=0;n<N;n++){
+    const win=0.5-0.5*Math.cos(2*Math.PI*n/(N-1));
+    const a=-2*Math.PI*k*n/N;
+    const v=signal[start+n]*win;
+    re+=v*Math.cos(a); im+=v*Math.sin(a);
+  }
+  return Math.sqrt(re*re+im*im)/N;
+}
+function buildMicroDoppler(target,tempC,windKmh,snow,visibility){
+  /* Physics-informed simulated HB100-style micro-Doppler.
+     The MP4 supplies only visual motion; radial velocity remains a bounded
+     simulation proxy until real radar ADC samples are connected. */
+  const C=299792458;
+  const RADAR_HZ=10.525e9;
+  const lambda=C/RADAR_HZ;
+  const fs=8000, N=256, hop=32, frames=48, bins=160;
+  const total=N+(frames-1)*hop;
+  const sig=new Float32Array(total);
+
+  const phase=target?(target.phase||0):0;
+  const speed=target?Math.hypot(target.vx||0,target.vy||0):0.18;
+  const az=target?(target.azimuth||bearingOf(target)):0;
+  const tangential=target?
+    ((target.vx||0)*Math.cos(az+Math.PI/2)+(target.vy||0)*Math.sin(az+Math.PI/2)):0;
+  const imageMotion=target?
+    (0.65*Math.tanh((target.vy||0)*7.0)+0.35*Math.tanh((target.vx||0)*5.0)):0;
+
+  const observedRadial=target?
+    Math.max(-5.5,Math.min(5.5,
+      2.8*imageMotion + 0.75*Math.sin(az+phase)
+      + 0.28*Math.tanh(tangential*4)
+    )):1.5;
+
+  /* Rotor order of magnitude: ~2700 RPM, two blades, four rotors. */
+  const rotorRpm=2700 + 420*Math.tanh(speed*4)
+                      + 110*Math.sin(0.40*simTime+phase);
+  const rotorHz=Math.max(30,rotorRpm/60);
+  const bladeCount=2;
+  const bladePassHz=rotorHz*bladeCount;
+  const rotorRadius=0.12;
+  const tipSpeed=2*Math.PI*rotorHz*rotorRadius;
+  const tipFd=2*tipSpeed/lambda;
+
+  const envGain=Math.max(0.45,Math.min(1.15,
+    1.0 - 0.22*snow - 0.18*(1-visibility)
+    - 0.002*Math.max(0,windKmh-15)
+    - 0.10*Math.max(0,(10-tempC)/40)
+  ));
+  const bodyAmp=0.88*envGain;
+  const rotorAmp=0.13*envGain;
+  const flashAmp=0.58*envGain;
+  const clutterAmp=0.014 + 0.045*snow + 0.025*(1-visibility);
+
+  let carrierPhase=phase;
+  for(let n=0;n<total;n++){
+    const t=n/fs;
+    const tau=simTime+t;
+
+    /* Smoothly varying LOS motion. This makes the body ridge move/chirp in
+       time instead of producing one fixed horizontal Doppler line. */
+    const rv=Math.max(-8,Math.min(8,
+      observedRadial
+      + 1.35*Math.sin(2*Math.PI*0.72*tau+phase)
+      + 0.55*Math.sin(2*Math.PI*0.21*tau+0.6*phase)
+    ));
+    const bodyFd=2*rv/lambda;
+    carrierPhase += 2*Math.PI*bodyFd/fs;
+    let sample=bodyAmp*Math.sin(carrierPhase);
+
+    /* Rotor micro-Doppler: each rotor has a small rate/phase offset. */
+    for(let r=0;r<4;r++){
+      const rr=rotorHz*(1+[0.0,0.018,-0.014,0.011][r]);
+      const rp=2*Math.PI*rr*tau + phase + r*Math.PI/2;
+
+      /* Continuous weak rotor return, phase-modulated by blade motion. */
+      const fm=0.72*tipFd*Math.sin(rp);
+      sample += rotorAmp*Math.sin(carrierPhase + 0.0025*fm*t + r*0.4);
+
+      /* Two blade passages per revolution. Narrow pulses become vertical
+         time-frequency streaks in the STFT. */
+      const bladePhase=2*Math.PI*rr*bladeCount*tau + phase + r*0.83;
+      const wrapped=Math.atan2(Math.sin(bladePhase),Math.cos(bladePhase));
+      const flash=Math.exp(-0.5*Math.pow(wrapped/0.105,2));
+
+      const tipInstant=2*rv/lambda + 0.82*tipFd*Math.sin(rp);
+      const flashPhase=2*Math.PI*tipInstant*t + 0.7*r;
+      sample += flashAmp*flash*Math.sin(flashPhase);
+
+      /* A weaker opposite blade-tip return broadens the micro-Doppler
+         envelope instead of leaving a pair of artificial fixed lines. */
+      sample += 0.16*flashAmp*flash*
+        Math.sin(2*Math.PI*(2*rv/lambda - 0.62*tipFd*Math.sin(rp))*t + r);
+    }
+
+    /* Small body harmonic + realistic environmental clutter. */
+    sample += 0.055*envGain*Math.sin(carrierPhase*0.5);
+    sample += (seededRandom()-0.5)*2*clutterAmp;
+    sig[n]=sample;
+  }
+
+  const spec=Array.from({length:bins},()=>Array(frames).fill(0));
+  let maxV=1e-9;
+  for(let f=0;f<frames;f++){
+    const start=f*hop;
+    for(let b=0;b<bins;b++){
+      /* Signed Doppler bins: -fs/2 ... +fs/2. */
+      const shifted=b-(bins/2);
+      const k=((shifted%N)+N)%N;
+      const mag=dftMagnitude(sig,start,N,k);
+      spec[b][f]=mag;
+      if(mag>maxV) maxV=mag;
+    }
+  }
+
+  const currentRv=Math.max(-8,Math.min(8,
+    observedRadial
+    + 1.35*Math.sin(2*Math.PI*0.72*simTime+phase)
+    + 0.55*Math.sin(2*Math.PI*0.21*simTime+0.6*phase)
+  ));
+
+  return {
+    spec,maxV,
+    bodyFd:2*currentRv/lambda,
+    rotorHz,bladePassHz,tipFd,
+    radialVelocity:currentRv
+  };
+}
+
+function drawMicroDoppler(target,tempC,windKmh,snow,visibility){
+  const w=mdCanvas.width,h=mdCanvas.height;
+  mdCtx.clearRect(0,0,w,h);
+  mdCtx.fillStyle='rgba(5,15,24,.94)';
+  mdCtx.fillRect(0,0,w,h);
+
+  const result=buildMicroDoppler(target,tempC,windKmh,snow,visibility);
+  const {spec,maxV,bodyFd,rotorHz,bladePassHz,tipFd,radialVelocity}=result;
+  const left=39,top=16,right=7,bottom=24;
+  const pw=w-left-right,ph=h-top-bottom;
+  const maxHz=4000;
+
+  /* Strong returns are yellow; weak returns stay dark blue/green. */
+  for(let b=0;b<spec.length;b++){
+    for(let f=0;f<spec[b].length;f++){
+      const ratio=spec[b][f]/maxV;
+      const norm=Math.min(1,Math.pow(
+        Math.log1p(65*ratio)/Math.log1p(65),0.78
+      ));
+      const hue=205-180*norm;
+      const light=7+58*norm;
+      mdCtx.fillStyle=`hsl(${hue},88%,${light}%)`;
+      mdCtx.fillRect(
+        left+f*pw/spec[0].length,
+        top+(spec.length-1-b)*ph/spec.length,
+        pw/spec[0].length+0.75,
+        ph/spec.length+0.75
+      );
+    }
+  }
+
+  mdCtx.strokeStyle='rgba(77,216,230,.20)';
+  mdCtx.lineWidth=1;
+  mdCtx.strokeRect(left+.5,top+.5,pw-1,ph-1);
+
+  /* Zero-Doppler reference. */
+  const yZero=top+ph/2;
+  mdCtx.strokeStyle='rgba(207,232,240,.16)';
+  mdCtx.setLineDash([3,3]);
+  mdCtx.beginPath();
+  mdCtx.moveTo(left,yZero); mdCtx.lineTo(left+pw,yZero); mdCtx.stroke();
+  mdCtx.setLineDash([]);
+
+  const clampHz=v=>Math.max(-maxHz,Math.min(maxHz,v));
+  const yForHz=v=>top+(0.5-clampHz(v)/(2*maxHz))*ph;
+
+  /* Current body-Doppler guide only; the spectrogram itself contains the
+     time-varying ridge and rotor spread. */
+  mdCtx.strokeStyle='rgba(255,255,255,.42)';
+  mdCtx.setLineDash([5,3]);
+  mdCtx.beginPath();
+  mdCtx.moveTo(left,yForHz(bodyFd));
+  mdCtx.lineTo(left+pw,yForHz(bodyFd));
+  mdCtx.stroke();
+  mdCtx.setLineDash([]);
+
+  mdCtx.fillStyle='#cfe8f0';
+  mdCtx.font='7px monospace';
+  mdCtx.fillText('+4 kHz',3,top+5);
+  mdCtx.fillText('+2 kHz',3,top+ph*0.25+2);
+  mdCtx.fillText('0',20,yZero+2);
+  mdCtx.fillText('-2 kHz',0,top+ph*0.75+2);
+  mdCtx.fillText('-4 kHz',0,top+ph-1);
+  mdCtx.fillText('DOPPLER FREQUENCY',left+2,9);
+  mdCtx.fillText('TIME →',w-42,h-5);
+
+  mdCtx.fillStyle='rgba(207,232,240,.74)';
+  mdCtx.fillText(`BODY ${bodyFd.toFixed(0)} Hz`,left+5,top+9);
+  mdCtx.fillText(`LOS ${radialVelocity.toFixed(1)} m/s`,left+74,top+9);
+  mdCtx.fillStyle='rgba(255,184,48,.82)';
+  mdCtx.fillText(`ROTOR ${rotorHz.toFixed(0)} Hz`,left+145,top+9);
+  mdCtx.fillText(`BPF ${bladePassHz.toFixed(0)} Hz`,left+225,top+9);
+  mdCtx.fillText(`TIP ±${Math.round(tipFd)} Hz`,left+300,top+9);
+}
+
+function updateStep6And7(currentTarget,tempC,windKmh,snow,visibility,latencyMs){
+  const result=updateEKF(currentTarget,tempC,snow,visibility,latencyMs);
+  if(result){
+    const [r,az,el]=result.measurement;
+    const rho=r*Math.cos(el);
+    result.measurementToCartesian=[rho*Math.cos(az),rho*Math.sin(az),r*Math.sin(el)];
+    drawEKF(result);
+    const e=result.estimate;
+    const speed=Math.hypot(e[3],e[4],e[5])*3600;
+    document.getElementById('ekfModeLabel').textContent='RUNNING';
+    document.getElementById('ekfPosNum').textContent=`${e[0].toFixed(2)}, ${e[1].toFixed(2)}, ${e[2].toFixed(2)} km`;
+    document.getElementById('ekfSpeedNum').textContent=speed.toFixed(1)+' km/h';
+    document.getElementById('ekfResidualNum').textContent=Math.abs(ekf.lastRangeResidual).toFixed(3)+' km';
+  } else {
+    drawEKF(null);
+    document.getElementById('ekfModeLabel').textContent='NO TARGET';
+    document.getElementById('ekfPosNum').textContent='—';
+    document.getElementById('ekfSpeedNum').textContent='—';
+    document.getElementById('ekfResidualNum').textContent='—';
+  }
+  mdAccumulator+=dt;
+  if(mdAccumulator>=0.18){
+    drawMicroDoppler(currentTarget,tempC,windKmh,snow,visibility);
+    mdAccumulator=0;
+  }
+}
+
+
+
+/* ===== ADDITIVE YOLO LIVE INTEGRATION ===== */
+const yoloLink = {
+  ws: null,
+  connected: false,
+  trackingEnabled: false,
+  lastPacket: 0,
+  detection: null,
+  prevAngle: 0,
+  prevTime: 0,
+  target: null,
+  detections: [],
+  selectedTrackId: null,
+  liveImage: null,
+  releasedTrackIds: new Set(),
+  neutralizedTrackIds: new Set(),
+  neutralizedHistory: [],
+  neutralizedCount: 0
+};
+const YOLO_WS_URL = (() => {
+  // Optional override: append ?ws=wss://YOUR-BACKEND.example/ws to the
+  // dashboard URL for remote judges. Local development stays on localhost.
+  const params = new URLSearchParams(window.location.search);
+  const configured = params.get('ws');
+  if (configured) return configured;
+  if (window.YOLO_WS_URL_OVERRIDE) return window.YOLO_WS_URL_OVERRIDE;
+  return window.location.protocol === 'https:'
+    ? ('wss://' + window.location.host)
+    : 'ws://127.0.0.1:8765';
+})();
+const YOLO_CAMERA_WIDTH = 640;
+const YOLO_CAMERA_HEIGHT = 512;
+const YOLO_HORIZONTAL_FOV_DEG = 120;
+const YOLO_VERTICAL_FOV_DEG = 78;
+const YOLO_TIMEOUT_MS = 1500;
+const YOLO_DETECTION_STALE_MS = 1400;
+const NON_THREAT_BLIP_MS = 1800;
+const YOLO_DISPLAY_RANGE_KM = 8.0;
+const NEUTRALIZED_MATCH_DISTANCE_NORM = 0.12;
+
+const yoloWsState = document.getElementById('yoloWsState');
+const yoloConnectBtn = document.getElementById('yoloConnectBtn');
+const yoloModeBtn = document.getElementById('yoloModeBtn');
+const yoloLiveCanvas = document.getElementById('yoloLiveCanvas');
+const yoloLiveCtx = yoloLiveCanvas.getContext('2d');
+const yoloTrackList = document.getElementById('yoloTrackList');
+
+// Judge webcam -> WebSocket JPEG uplink. The Roboflow API key never enters
+// the browser; the Python backend performs inference and returns detections.
+let judgeCameraStream = null;
+let judgeCameraVideo = null;
+let judgeCameraCanvas = null;
+let judgeCameraCtx = null;
+let judgeCameraTimer = null;
+let judgeCameraBusy = false;
+const JUDGE_CAMERA_FPS = 8;
+const JUDGE_CAMERA_JPEG_QUALITY = 0.65;
+
+async function startJudgeCamera(){
+  if (judgeCameraStream) return true;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setYoloWsState('CAMERA UNSUPPORTED');
+    return false;
+  }
+  try{
+    judgeCameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {width:{ideal:640}, height:{ideal:512}, facingMode:'environment'},
+      audio: false
+    });
+    judgeCameraVideo = document.createElement('video');
+    judgeCameraVideo.autoplay = true;
+    judgeCameraVideo.muted = true;
+    judgeCameraVideo.playsInline = true;
+    judgeCameraVideo.srcObject = judgeCameraStream;
+    await judgeCameraVideo.play();
+
+    judgeCameraCanvas = document.createElement('canvas');
+    judgeCameraCanvas.width = 640;
+    judgeCameraCanvas.height = 512;
+    judgeCameraCtx = judgeCameraCanvas.getContext('2d', {willReadFrequently:false});
+
+    if (judgeCameraTimer) clearInterval(judgeCameraTimer);
+    judgeCameraTimer = setInterval(sendJudgeCameraFrame, 1000 / JUDGE_CAMERA_FPS);
+    return true;
+  }catch(err){
+    console.error('Judge camera permission error:', err);
+    setYoloWsState('CAMERA DENIED');
+    return false;
+  }
+}
+
+function sendJudgeCameraFrame(){
+  const ws = yoloLink.ws;
+  if (!ws || ws.readyState !== WebSocket.OPEN || !judgeCameraVideo || judgeCameraBusy) return;
+  const w = judgeCameraVideo.videoWidth || 640;
+  const h = judgeCameraVideo.videoHeight || 512;
+  if (!w || !h || !judgeCameraCtx) return;
+
+  judgeCameraBusy = true;
+  const targetW = 640;
+  const targetH = Math.round(h * targetW / w);
+  judgeCameraCanvas.width = targetW;
+  judgeCameraCanvas.height = targetH;
+  judgeCameraCtx.drawImage(judgeCameraVideo, 0, 0, targetW, targetH);
+  judgeCameraCanvas.toBlob(blob => {
+    judgeCameraBusy = false;
+    if (blob && yoloLink.ws === ws && ws.readyState === WebSocket.OPEN) ws.send(blob);
+  }, 'image/jpeg', JUDGE_CAMERA_JPEG_QUALITY);
+}
+
+function stopJudgeCamera(){
+  if (judgeCameraTimer) clearInterval(judgeCameraTimer);
+  judgeCameraTimer = null;
+  if (judgeCameraStream){
+    judgeCameraStream.getTracks().forEach(track => track.stop());
+  }
+  judgeCameraStream = null;
+  judgeCameraVideo = null;
+  judgeCameraCanvas = null;
+  judgeCameraCtx = null;
+}
+
+function setYoloWsState(text, cls=''){
+  yoloWsState.textContent = text;
+  yoloWsState.className = 'yolo-state' + (cls ? ' '+cls : '');
+}
+
+function normalizeRoboflowClass(raw){
+  const s=String(raw||'').trim().toLowerCase();
+  if(/\b(drone|uav|uas|quadcopter|multirotor|hexacopter|octocopter)\b/.test(s)) return 'drone';
+  if(/\bbird\b/.test(s)) return 'bird';
+  if(/\b(helicopter|heli|chopper)\b/.test(s)) return 'helicopter';
+  if(/\b(airplane|aircraft|aeroplane|plane|jet)\b/.test(s)) return 'airplane';
+  return 'non-threat';
+}
+
+function yoloDisplayClass(raw){
+  const kind=normalizeRoboflowClass(raw);
+  if(kind==='drone') return 'DRONE';
+  if(kind==='bird') return 'BIRD';
+  if(kind==='helicopter') return 'HELICOPTER';
+  if(kind==='airplane') return 'AIRPLANE';
+  return String(raw||'NON-THREAT').toUpperCase();
+}
+
+function getHpmTargets(rangeKm){
+  const targets=drones.filter(d=>d.status==='ACTIVE' && rangeOf(d)<=rangeKm);
+  const liveYolo=yoloLink.target;
+  if(liveYolo && liveYolo.yolo && liveYolo.kind==='drone' && liveYolo.status==='ACTIVE' && rangeOf(liveYolo)<=rangeKm){
+    targets.push(liveYolo);
+  }
+  return targets;
+}
+
+function yoloTrackIsSuppressed(trackId){
+  if(trackId==null) return false;
+  const id=String(trackId);
+  return yoloLink.releasedTrackIds.has(id) || yoloLink.neutralizedTrackIds.has(id);
+}
+
+function yoloDetectionIdentity(d){
+  if(!d) return null;
+  return {
+    trackId: d.track_id != null ? String(d.track_id) : null,
+    kind: normalizeRoboflowClass(d.class),
+    cx: Number(d.cx) || 0,
+    cy: Number(d.cy) || 0,
+    width: Number(d.width) || Math.max(1, Number(d.x2)-Number(d.x1) || 1),
+    height: Number(d.height) || Math.max(1, Number(d.y2)-Number(d.y1) || 1),
+    frameWidth: Number(d.frameWidth) || YOLO_CAMERA_WIDTH,
+    frameHeight: Number(d.frameHeight) || YOLO_CAMERA_HEIGHT
+  };
+}
+
+function findNeutralizedMatch(d){
+  const id = yoloDetectionIdentity(d);
+  if(!id || id.kind !== 'drone') return null;
+  // Prefer the persistent ByteTrack ID.
+  if(id.trackId){
+    const byId = yoloLink.neutralizedHistory.find(h => h.trackId === id.trackId);
+    if(byId) return byId;
+  }
+  // If ByteTrack assigns a new ID after a dropped inference frame, match the
+  // same drone by class + normalized image position/box size.
+  return yoloLink.neutralizedHistory.find(h => {
+    if(h.kind !== 'drone') return false;
+    const dx = (id.cx/id.frameWidth) - (h.cx/h.frameWidth);
+    const dy = (id.cy/id.frameHeight) - (h.cy/h.frameHeight);
+    const dist = Math.hypot(dx,dy);
+    const wRatio = Math.abs(id.width/id.frameWidth - h.width/h.frameWidth);
+    const hRatio = Math.abs(id.height/id.frameHeight - h.height/h.frameHeight);
+    return dist <= NEUTRALIZED_MATCH_DISTANCE_NORM && wRatio < 0.10 && hRatio < 0.10;
+  }) || null;
+}
+
+function rememberNeutralizedDetection(d){
+  const id = yoloDetectionIdentity(d);
+  if(!id || id.kind !== 'drone') return null;
+  const existing = findNeutralizedMatch(d);
+  if(existing){
+    existing.lastSeen = performance.now();
+    if(id.trackId) existing.trackId = id.trackId;
+    existing.cx = id.cx; existing.cy = id.cy;
+    existing.width = id.width; existing.height = id.height;
+    existing.frameWidth = id.frameWidth; existing.frameHeight = id.frameHeight;
+    return existing;
+  }
+  const entry = {...id, lastSeen: performance.now()};
+  yoloLink.neutralizedHistory.push(entry);
+  yoloLink.neutralizedCount = yoloLink.neutralizedHistory.length;
+  return entry;
+}
+
+function yoloDetectionIsAlreadyNeutralized(d){
+  return !!findNeutralizedMatch(d);
+}
+
+function buildYoloRadarTarget(d, rangeKm, statusOverride){
+  const fw = Number(d.frameWidth) || YOLO_CAMERA_WIDTH;
+  const fh = Number(d.frameHeight) || YOLO_CAMERA_HEIGHT;
+  const cx = Math.max(0, Math.min(fw, Number(d.cx)));
+  const cy = Math.max(0, Math.min(fh, Number(d.cy)));
+  const az = ((cx/fw)-0.5) * YOLO_HORIZONTAL_FOV_DEG * Math.PI/180;
+  const el = (0.5-(cy/fh)) * YOLO_VERTICAL_FOV_DEG * Math.PI/180;
+  const r = Math.max(0.1, Number(d.range_km) || rangeKm || YOLO_DISPLAY_RANGE_KM);
+  const kind = normalizeRoboflowClass(d.class);
+  const already = yoloDetectionIsAlreadyNeutralized(d);
+  return {
+    id: d.track_id != null ? String(d.track_id) : 'D-01',
+    x: Math.cos(az)*r, y: Math.sin(az)*r, vx:0, vy:0,
+    status: statusOverride || (already ? 'DEACTIVATED' : 'ACTIVE'),
+    kind, yolo:true, className:d.class || kind, displayClass:yoloDisplayClass(d.class),
+    confidence:Number(d.confidence)||0, trackId:d.track_id, trackLabel:d.track_label,
+    cx, cy, elevation:el, azimuth:az, rangeKm:r, color_hex:d.color_hex || (kind==='drone'?'#5cd68a':'#d8b4fe'),
+    alreadyNeutralized: already
+  };
+}
+
+function resetYoloTarget(){
+  yoloLink.detection = null;
+  yoloLink.target = null;
+  yoloLink.detections = [];
+  yoloLink.selectedTrackId = null;
+  yoloLink.liveImage = null;
+  yoloLiveCtx.clearRect(0,0,yoloLiveCanvas.width,yoloLiveCanvas.height);
+  yoloTrackList.innerHTML = '<div class="yolo-track-item"><span class="yolo-track-text">WAITING FOR TRACKS</span></div>';
+  yoloLink.prevAngle = 0;
+  yoloLink.prevTime = 0;
+  yoloLink.releasedTrackIds.clear();
+  yoloLink.neutralizedTrackIds.clear();
+  // IMPORTANT: neutralizedHistory is intentionally preserved.
+  // A repeated video frame of the same drone must still report
+  // "already neutralized" until REACTIVATE SIM DRONES is clicked.
+  document.getElementById('yoloTargetId').textContent = '—';
+  document.getElementById('yoloTargetId').style.color = 'var(--text)';
+  document.getElementById('yoloClass').textContent = '—';
+  document.getElementById('yoloConfidence').textContent = '—';
+  document.getElementById('yoloFps').textContent = '—';
+  document.getElementById('yoloCenter').textContent = '—';
+  document.getElementById('yoloBearing').textContent = '—';
+}
+
+function hexToRgba(hex, alpha){
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex||''));
+  if(!m) return `rgba(255,255,255,${alpha})`;
+  const n = parseInt(m[1],16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${alpha})`;
+}
+
+function renderYoloTrackList(detections){
+  if(!detections.length){
+    yoloTrackList.innerHTML = '<div class="yolo-track-item"><span class="yolo-track-text">NO ACTIVE TRACKS</span></div>';
+    return;
+  }
+  yoloTrackList.innerHTML = detections.map(d=>{
+    const id = d.track_label || (d.track_id != null ? `D-${String(d.track_id).padStart(2,'0')}` : 'T-?');
+    const selected = d.track_id != null && String(d.track_id) === String(yoloLink.selectedTrackId);
+    const c = d.color_hex || '#FFFFFF';
+    return `<div class="yolo-track-item ${selected?'selected':''}" title="Click not required — highest-confidence stable track is selected">
+      <span class="yolo-track-dot" style="color:${c};background:${c}"></span>
+      <span class="yolo-track-text" style="color:${c}">${id} · ${yoloDisplayClass(d.class)} ${(Number(d.confidence||0)*100).toFixed(0)}%${d.alreadyNeutralized ? ' · ALREADY NEUTRALIZED' : ''}</span>
+    </div>`;
+  }).join('');
+}
+
+function drawYoloLiveFrame(msg){
+  const b64 = msg.frame_jpeg_b64;
+  if(!b64) return;
+  const img = yoloLink.liveImage || new Image();
+  yoloLink.liveImage = img;
+  img.onload = ()=>{
+    const w = Number(msg.frame_width) || img.naturalWidth || 640;
+    const h = Number(msg.frame_height) || img.naturalHeight || 512;
+    yoloLiveCanvas.width = w; yoloLiveCanvas.height = h;
+    yoloLiveCtx.clearRect(0,0,w,h);
+    yoloLiveCtx.drawImage(img,0,0,w,h);
+    const dets = yoloLink.detections || [];
+    for(const d of dets){
+      const x1=Number(d.x1), y1=Number(d.y1), x2=Number(d.x2), y2=Number(d.y2);
+      if(![x1,y1,x2,y2].every(Number.isFinite)) continue;
+      const c=d.color_hex || '#FFFFFF';
+      const id=d.track_label || (d.track_id!=null ? `D-${String(d.track_id).padStart(2,'0')}` : 'T-?');
+      const selected=d.track_id!=null && String(d.track_id)===String(yoloLink.selectedTrackId);
+      yoloLiveCtx.save();
+      yoloLiveCtx.strokeStyle=c;
+      yoloLiveCtx.lineWidth=selected?4:3;
+      yoloLiveCtx.shadowColor=c;
+      yoloLiveCtx.shadowBlur=selected?10:4;
+      yoloLiveCtx.strokeRect(x1,y1,x2-x1,y2-y1);
+      yoloLiveCtx.shadowBlur=0;
+      const label = d.alreadyNeutralized
+        ? `${id} | ${yoloDisplayClass(d.class)} — ALREADY NEUTRALIZED IN PREV FRAME`
+        : `${id} | ${yoloDisplayClass(d.class)} ${Number(d.confidence||0).toFixed(2)}`;
+      yoloLiveCtx.font='700 16px monospace';
+      const tw=yoloLiveCtx.measureText(label).width+12;
+      const ly=Math.max(0,y1-23);
+      yoloLiveCtx.fillStyle='rgba(2,8,14,.82)';
+      yoloLiveCtx.fillRect(x1,ly,tw,23);
+      yoloLiveCtx.fillStyle=c;
+      yoloLiveCtx.fillText(label,x1+6,ly+16);
+      yoloLiveCtx.restore();
+    }
+  };
+  img.src='data:image/jpeg;base64,'+b64;
+}
+
+function connectYolo(){
+  if(yoloLink.ws && (yoloLink.ws.readyState===WebSocket.OPEN || yoloLink.ws.readyState===WebSocket.CONNECTING)){
+    return;
+  }
+  setYoloWsState('CONNECTING');
+  try{
+    const ws = new WebSocket(YOLO_WS_URL);
+    yoloLink.ws = ws;
+    ws.onopen = async ()=>{
+      yoloLink.connected = true;
+      yoloLink.lastPacket = performance.now();
+      setYoloWsState('CAMERA PERMISSION');
+      const cameraOk = await startJudgeCamera();
+      if (cameraOk) setYoloWsState(yoloLink.trackingEnabled ? 'TRACKING' : 'ONLINE','online');
+    };
+    ws.onmessage = ev=>{
+      try{
+        const msg = JSON.parse(ev.data);
+        if(msg.type !== 'yolo_detection') return;
+        yoloLink.lastPacket = performance.now();
+        const ageEl = document.getElementById('yoloInferenceAge');
+        if(ageEl){
+          const age = Number(msg.inference_age_ms);
+          ageEl.textContent = Number.isFinite(age) ? age.toFixed(0)+' ms' : '—';
+        }
+        const displayFps = Number.isFinite(Number(msg.stream_fps)) ? Number(msg.stream_fps) : Number(msg.fps);
+        if(Number.isFinite(displayFps)){
+          document.getElementById('yoloFps').textContent = displayFps.toFixed(1);
+        }
+        const rawDetections = Array.isArray(msg.detections) ? msg.detections : [];
+        const detections = rawDetections.map(d=>{
+          const copy = {...d};
+          copy.frameWidth = Number(msg.frame_width) || YOLO_CAMERA_WIDTH;
+          copy.frameHeight = Number(msg.frame_height) || YOLO_CAMERA_HEIGHT;
+          copy.alreadyNeutralized = yoloDetectionIsAlreadyNeutralized(copy);
+          return copy;
+        });
+        yoloLink.detections = detections;
+
+        const candidates = detections.filter(d=>
+          d.track_id!=null && !d.alreadyNeutralized && !yoloTrackIsSuppressed(d.track_id)
+        );
+        // A drone always has priority. Birds/helicopters/airplanes remain
+        // visible and are inspected, but are never sent to HPM.
+        const droneCandidates = candidates.filter(d=>normalizeRoboflowClass(d.class)==='drone');
+        const best = (droneCandidates.length ? droneCandidates : candidates)
+          .sort((a,b)=>Number(b.confidence||0)-Number(a.confidence||0))[0] || null;
+        yoloLink.selectedTrackId = best ? String(best.track_id) : null;
+        const primary = best;
+        yoloLink.detection = primary;
+        if(primary){
+          const w = Number(msg.frame_width) || YOLO_CAMERA_WIDTH;
+          const h = Number(msg.frame_height) || YOLO_CAMERA_HEIGHT;
+          primary.frameWidth = w; primary.frameHeight = h;
+          const targetEl = document.getElementById('yoloTargetId');
+          targetEl.textContent = primary.track_label || (primary.track_id != null ? 'D-'+String(primary.track_id).padStart(2,'0') : 'D-01');
+          targetEl.style.color = primary.color_hex || 'var(--text)';
+          document.getElementById('yoloClass').textContent = yoloDisplayClass(primary.class);
+          document.getElementById('yoloConfidence').textContent = (Number(primary.confidence)*100).toFixed(1)+'%';
+          document.getElementById('yoloCenter').textContent = Math.round(primary.cx)+' / '+Math.round(primary.cy);
+        } else {
+          // No currently detected track: clear the live target so a removed
+          // bird/aircraft/drone cannot remain stuck on the radar forever.
+          yoloLink.detection = null;
+          if(yoloLink.target && yoloLink.target.status !== 'DEACTIVATED') yoloLink.target = null;
+          document.getElementById('yoloTargetId').textContent='—';
+          document.getElementById('yoloClass').textContent='—';
+          document.getElementById('yoloConfidence').textContent='—';
+          document.getElementById('yoloCenter').textContent='—';
+          yoloLink.detection = null;
+        }
+        renderYoloTrackList(detections);
+        drawYoloLiveFrame(msg);
+      }catch(err){ console.warn('YOLO packet error',err); }
+    };
+    ws.onerror = ()=>{ setYoloWsState('ERROR'); };
+    ws.onclose = ()=>{
+      yoloLink.connected = false;
+      if(yoloLink.trackingEnabled) setYoloWsState('RECONNECTING'); else setYoloWsState('OFFLINE');
+      yoloLink.ws = null;
+      stopJudgeCamera();
+    };
+  }catch(err){
+    setYoloWsState('UNAVAILABLE');
+    console.error(err);
+  }
+}
+
+yoloConnectBtn.addEventListener('click', connectYolo);
+yoloModeBtn.addEventListener('click', ()=>{
+  yoloLink.trackingEnabled = !yoloLink.trackingEnabled;
+  yoloModeBtn.textContent = 'ROBOFLOW TRACK: ' + (yoloLink.trackingEnabled ? 'ON' : 'OFF');
+  if(yoloLink.trackingEnabled){ connectYolo(); setYoloWsState(yoloLink.connected?'TRACKING':'WAITING'); }
+  else {
+    resetYoloTarget();
+    stopJudgeCamera();
+    setYoloWsState(yoloLink.connected?'ONLINE':'OFFLINE',yoloLink.connected?'online':'');
+  }
+});
+
+function yoloTargetFromDetection(rangeKm){
+  const d = yoloLink.detection;
+  if(!d || d.alreadyNeutralized || yoloTrackIsSuppressed(d.track_id)) return null;
+  const target = buildYoloRadarTarget(d, rangeKm, 'ACTIVE');
+  const now = performance.now();
+  if(yoloLink.prevTime>0){
+    const dtSec=Math.max(0.001,(now-yoloLink.prevTime)/1000);
+    const rate=wrapAngle(target.azimuth-yoloLink.prevAngle)/dtSec;
+    target.vx=-Math.sin(target.azimuth)*target.rangeKm*rate;
+    target.vy=Math.cos(target.azimuth)*target.rangeKm*rate;
+  }
+  yoloLink.prevAngle=target.azimuth; yoloLink.prevTime=now;
+  yoloLink.target=target;
+  document.getElementById('yoloBearing').textContent=deg(target.azimuth).toFixed(1)+'° / '+deg(target.elevation).toFixed(1)+'°';
+  return target;
+}
+
+
+function stepYoloGimbalPair(tempC, windKmh, altM, rangeKm){
+  const currentTarget = yoloTargetFromDetection(rangeKm);
+  if(!currentTarget) return null;
+  const targetAng = bearingOf(currentTarget);
+  const targetRate = bearingRateOf(currentTarget);
+  const rAdaptive = stepAxis(adaptive, tempC, windKmh, altM, true, targetAng, targetRate);
+  const rBaseline = stepAxis(baseline, tempC, windKmh, altM, false, targetAng, targetRate);
+  simTime += dt;
+  errHistoryAdaptive.push(rAdaptive.trackingErrorDeg);
+  errHistoryBaseline.push(rBaseline.trackingErrorDeg);
+  if(errHistoryAdaptive.length>MAX_HISTORY) errHistoryAdaptive.shift();
+  if(errHistoryBaseline.length>MAX_HISTORY) errHistoryBaseline.shift();
+
+  const wellTracked = rAdaptive.trackingErrorDeg <= GIMBAL_SEVERE_ERROR_DEG;
+  if(!yoloLink.rfVerified){
+    if(wellTracked){
+      yoloLink.rfLockTimer = (yoloLink.rfLockTimer || 0) + dt;
+      if(yoloLink.rfLockTimer >= REQUIRED_RF_LOCK_TIME){
+        yoloLink.rfLockTimer = REQUIRED_RF_LOCK_TIME;
+        yoloLink.rfVerified = true;
+        yoloLink.hoverTimer = 0;
+
+        if(currentTarget.kind !== 'drone'){
+          // Non-threat: inspect, classify, then release. No HPM response.
+          currentTarget.status='NON_THREAT';
+          currentTarget.releasedAtMs = performance.now();
+          yoloLink.releasedTrackIds.add(String(currentTarget.trackId));
+          yoloLink.target=currentTarget;
+          yoloLink.selectedTrackId=null;
+          yoloLink.detection=null;
+          yoloLink.rfVerified=false;
+          yoloLink.rfLockTimer=0;
+          yoloLink.hoverTimer=0;
+        }
+      }
+    }else{
+      yoloLink.rfLockTimer=Math.max(0,(yoloLink.rfLockTimer||0)-dt);
+    }
+  }else if(currentTarget.kind==='drone' && wellTracked){
+    yoloLink.hoverTimer=(yoloLink.hoverTimer||0)+dt;
+    if(yoloLink.hoverTimer>=HPM_NEUTRALIZATION_TIME){
+      currentTarget.status='DEACTIVATED';
+      currentTarget.engagedAt=simTime;
+      yoloLink.neutralizedTrackIds.add(String(currentTarget.trackId));
+      rememberNeutralizedDetection(yoloLink.detection);
+      if(yoloLink.detection){
+        yoloLink.detection.alreadyNeutralized = true;
+        yoloLink.detection.neutralizedMessage = 'ALREADY NEUTRALIZED IN PREV FRAME';
+      }
+      yoloLink.selectedTrackId=null;
+      yoloLink.detection=null;
+      yoloLink.rfVerified=false;
+      yoloLink.rfLockTimer=0;
+      yoloLink.hoverTimer=0;
+    }
+  }else{
+    yoloLink.hoverTimer=Math.max(0,(yoloLink.hoverTimer||0)-dt);
+  }
+
+  return {actualAdaptive:rAdaptive.actual,actualBaseline:rBaseline.actual,errAdaptive:rAdaptive.trackingErrorDeg,currentTarget};
+}
+
+function drawYoloRadarMarker(currentTarget){
+  const live = yoloLink.detections || [];
+  const now = performance.now();
+  // Draw every currently tracked Roboflow object, not only the selected target.
+  // This keeps birds/helicopters/airplanes visible as non-threat blips too.
+  for(const d of live){
+    const t = buildYoloRadarTarget(d, _currentRangeKm, d.alreadyNeutralized ? 'DEACTIVATED' : 'ACTIVE');
+    const dist=Math.min(rangeOf(t),20), ang=bearingOf(t);
+    const px=CENTER.x+Math.cos(ang)*kmToPx(dist), py=CENTER.y+Math.sin(ang)*kmToPx(dist);
+    const markerColor=t.color_hex || (t.kind==='drone' ? '#5cd68a' : '#d8b4fe');
+    const label=`${t.trackLabel || ('D-'+String(t.trackId ?? '').padStart(2,'0'))} | ${t.displayClass}`;
+    rctx.save();
+    rctx.strokeStyle=markerColor; rctx.lineWidth=2;
+    if(t.status==='DEACTIVATED'){
+      rctx.strokeStyle='#6f8ca3';
+      rctx.beginPath(); rctx.moveTo(px-8,py-8); rctx.lineTo(px+8,py+8); rctx.moveTo(px+8,py-8); rctx.lineTo(px-8,py+8); rctx.stroke();
+    }else if(t.kind==='drone'){
+      rctx.beginPath(); rctx.arc(px,py,7,0,Math.PI*2); rctx.fillStyle=markerColor; rctx.fill();
+      rctx.strokeStyle='#4dd8e6'; rctx.lineWidth=1.5; rctx.setLineDash([3,3]);
+      rctx.beginPath(); rctx.arc(px,py,14,0,Math.PI*2); rctx.stroke(); rctx.setLineDash([]);
+    }else{
+      rctx.setLineDash([4,3]); rctx.beginPath(); rctx.arc(px,py,12,0,Math.PI*2); rctx.stroke(); rctx.setLineDash([]);
+      rctx.fillStyle=markerColor; rctx.beginPath(); rctx.arc(px,py,4,0,Math.PI*2); rctx.fill();
+    }
+    rctx.fillStyle=markerColor; rctx.font='9px monospace'; rctx.textAlign='center';
+    rctx.fillText(label,px,py-19);
+    if(t.alreadyNeutralized) rctx.fillText('ALREADY NEUTRALIZED',px,py+27);
+    rctx.restore();
+  }
+}
+
+
+function yoloConnectionFresh(){
+  return yoloLink.connected && (performance.now()-yoloLink.lastPacket)<=YOLO_TIMEOUT_MS;
+}
+
+function loop() {
+  const { tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs } = updateTelemetry();
+  const showBaseline = baselineToggle.checked;
+
+  // Cloud inference is slower than the 25 FPS camera stream. Expire the
+  // displayed detection set when the last inference result is too old.
+  // This prevents a removed bird from remaining visually stuck on screen.
+  if(yoloLink.connected && (performance.now()-yoloLink.lastPacket)>YOLO_DETECTION_STALE_MS){
+    yoloLink.detections = [];
+    yoloLink.detection = null;
+    if(yoloLink.target && yoloLink.target.status !== 'DEACTIVATED') yoloLink.target = null;
+  }
+
+  let result;
+  if (yoloLink.trackingEnabled && yoloConnectionFresh() && yoloLink.detection) {
+    result = stepYoloGimbalPair(tempC, windKmh, altM, rangeKm);
+    if(result){
+      setYoloWsState('TRACKING','tracking');
+    }
+  }
+  if(!result){
+    result = stepGimbalPair(tempC, windKmh, altM, rangeKm, snow, visibility, latencyMs);
+    if(yoloLink.trackingEnabled && !yoloConnectionFresh()) setYoloWsState(yoloLink.connected?'STALE':'WAITING');
+  }
+
+  const { actualAdaptive, actualBaseline, errAdaptive, currentTarget } = result;
+  updateStep6And7(currentTarget, tempC, windKmh, snow, visibility, latencyMs);
+
+  document.getElementById('rmsNum').textContent = errAdaptive.toFixed(3) + '° error';
+  document.getElementById('trackingNum').textContent =
+    currentTarget
+      ? (currentTarget.yolo ? currentTarget.id + ' · ' + (currentTarget.displayClass || 'ROBOFLOW TRACK') : (rfVerified ? currentTarget.id + ' · VERIFIED' : currentTarget.id + ' · RF LOCK'))
+      : 'none (all clear)';
+
+  const rfStatusEl = document.getElementById('rfStatusNum');
+  if (currentTarget && currentTarget.yolo) {
+    rfStatusEl.textContent = currentTarget.displayClass || 'ROBOFLOW LINK';
+    rfStatusEl.className = 'num good';
+  } else if (!currentTarget) {
+    rfStatusEl.textContent = 'IDLE';
+    rfStatusEl.className = 'num good';
+  } else if (rfVerified) {
+    rfStatusEl.textContent = 'VERIFIED';
+    rfStatusEl.className = 'num good';
+  } else {
+    rfStatusEl.textContent = `${rfLockTimer.toFixed(1)} / 1.0 s`;
+    rfStatusEl.className = 'num warn';
+  }
+
+  document.getElementById('targetRangeNum').textContent = currentTarget ? rangeOf(currentTarget).toFixed(2) + ' km' : '—';
+  document.getElementById('gimbalVectorNum').textContent = deg(actualAdaptive).toFixed(1) + '°';
+  document.getElementById('targetBearingNum').textContent = currentTarget ? deg(bearingOf(currentTarget)).toFixed(1) + '°' : '—';
+  document.getElementById('vectorRangeNum').textContent = currentTarget ? rangeOf(currentTarget).toFixed(2) + ' km' : '—';
+
+  if (errHistoryAdaptive.length > 10) {
+    const avgAdaptive = errHistoryAdaptive.reduce((a, b) => a + b, 0) / errHistoryAdaptive.length;
+    const avgBaseline = errHistoryBaseline.reduce((a, b) => a + b, 0) / errHistoryBaseline.length;
+    const improvement = avgBaseline > 0 ? ((avgBaseline - avgAdaptive) / avgBaseline) * 100 : 0;
+    document.getElementById('improvementBig').textContent = improvement.toFixed(1) + '%';
+  }
+
+  drawRadar(rangeKm, actualAdaptive, actualBaseline, showBaseline, currentTarget);
+  drawYoloRadarMarker(currentTarget && currentTarget.yolo ? currentTarget : yoloLink.target);
+  drawErrChart(showBaseline);
+  drawTrajectoryChart(currentTarget);
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('reactivateBtn').addEventListener('click', () => {
+  const currentRange = maxEffectiveRangeKm(txPowerAt(parseFloat(tempSlider.value), parseFloat(altSlider.value)));
+  drones.forEach(d => {
+    if(d.status === 'DEACTIVATED') d.status = rangeOf(d) <= currentRange ? 'ACTIVE' : 'OUT_OF_RANGE';
+  });
+  yoloLink.neutralizedTrackIds.clear();
+  yoloLink.neutralizedHistory.length = 0;
+  yoloLink.neutralizedCount = 0;
+  yoloLink.detections.forEach(d => { d.alreadyNeutralized = false; delete d.neutralizedMessage; });
+  yoloLink.target = null;
+  yoloLink.detection = null;
+  yoloLink.rfVerified = false;
+  yoloLink.rfLockTimer = 0;
+  yoloLink.hoverTimer = 0;
+  updateTelemetry();
+});
+
+/*document.getElementById('resetBtn').addEventListener('click', () => {
+  resetTargets();
+  seededRandom = mulberry32(42);
+  resetYoloTarget();
+});*/
+
+loop();
+
+/* ============================================================
+   STEP 7 HARDWARE-READY RADAR INPUT ADAPTER
+   - Default: simulated samples driven by the YOLO video target.
+   - Future hardware: replace pushRadarSamples() input with
+     ADC samples from the Raspberry Pi. STFT/micro-Doppler UI
+     remains the same.
+   ============================================================ */
+window.radarHardwareReady = {
+  mode: "simulation",
+  sampleRateHz: 2000,
+  pushRadarSamples(samples, sampleRateHz) {
+    if (!Array.isArray(samples) || samples.length < 16) return;
+    window.radarHardwareReady.mode = "hardware";
+    window.radarHardwareReady.sampleRateHz = Number(sampleRateHz) || 2000;
+    window.dispatchEvent(new CustomEvent("radarSamples", {
+      detail: { samples, sampleRateHz: window.radarHardwareReady.sampleRateHz }
+    }));
+  },
+  setSimulation() {
+    window.radarHardwareReady.mode = "simulation";
+  }
+};
+
+window.addEventListener("radarSamples", (ev) => {
+  const modeEl = document.getElementById("radarInputMode");
+  if (modeEl) modeEl.textContent = "HARDWARE";
+});
+
+</script>
+<!-- ===== ADDITIVE STEPS 8 + 9 + 10 ===== -->
+<section aria-label="Sensor fusion, environment weighting and hardware bridge" class="s8910-grid">
+<div class="panel s8910-card">
+<div class="s8910-head">
+<b>SENSOR FUSION</b>
+<span id="fusionModeLabel">SIMULATION</span>
+</div>
+<div class="fusion-row"><label>YOLO</label><div class="mini-bar"><i id="fusionYoloBar"></i></div><em id="fusionYoloNum">0%</em></div>
+<div class="fusion-row"><label>RADAR</label><div class="mini-bar"><i id="fusionRadarBar"></i></div><em id="fusionRadarNum">0%</em></div>
+<div class="fusion-row"><label>THERMAL</label><div class="mini-bar"><i id="fusionThermalBar"></i></div><em id="fusionThermalNum">0%</em></div>
+<div class="fusion-row"><label>RF RX</label><div class="mini-bar"><i id="fusionRfBar"></i></div><em id="fusionRfNum">0%</em></div>
+
+</div>
+<div class="panel s8910-card">
+<div class="s8910-head">
+<b>ENVIRONMENT WEIGHTS</b>
+<span id="envWeightLabel">LIVE</span>
+</div>
+<div class="weight-row"><label>YOLO</label><div class="mini-bar"><i id="weightYoloBar"></i></div><em id="weightYoloNum">—</em></div>
+<div class="weight-row"><label>RADAR</label><div class="mini-bar"><i id="weightRadarBar"></i></div><em id="weightRadarNum">—</em></div>
+<div class="weight-row"><label>THERMAL</label><div class="mini-bar"><i id="weightThermalBar"></i></div><em id="weightThermalNum">—</em></div>
+<div class="weight-row"><label>RF RX</label><div class="mini-bar"><i id="weightRfBar"></i></div><em id="weightRfNum">—</em></div>
+
+</div>
+<div class="panel s8910-card">
+<div class="s8910-head">
+<b>HARDWARE BRIDGE</b>
+<span class="hw-wait" id="hardwareModeLabel">SIMULATION</span>
+</div>
+<div class="hw-row"><label>CAMERA</label><div class="mini-bar"><i id="hwCameraBar"></i></div><em id="hwCameraNum">SIM</em></div>
+<div class="hw-row"><label>RADAR ADC</label><div class="mini-bar"><i id="hwRadarBar"></i></div><em id="hwRadarNum">SIM</em></div>
+<div class="hw-row"><label>THERMAL</label><div class="mini-bar"><i id="hwThermalBar"></i></div><em id="hwThermalNum">SIM</em></div>
+<div class="hw-row"><label>RF RX</label><div class="mini-bar"><i id="hwRfBar"></i></div><em id="hwRfNum">SIM</em></div>
+
+</div>
+</section>
+<!-- <script>
+/* ===== ADDITIVE STEPS 8 + 9 + 10 ===== */
+
+const sensorFusion8910 = {
+  hardware:false,
+  lastHardwareMs:0,
+  lastPacket:null
+};
+
+function clamp8910(v){return Math.max(0,Math.min(1,Number(v)||0));}
+
+/* STEP 9 — environment-aware sensor reliability.
+   This is a normalized simulation model, not a hardware calibration. */
+function environmentWeights8910(tempC,windKmh,snow,visibility,latencyMs){
+  const cold=clamp8910((10-tempC)/45);
+  const wind=clamp8910(Math.max(0,windKmh-15)/45);
+  const snowV=clamp8910(snow);
+  const poorVis=clamp8910(1-visibility);
+  const latency=clamp8910(Math.max(0,latencyMs-20)/120);
+
+  return {
+    yolo:clamp8910(1-.28*poorVis-.14*snowV-.10*wind-.08*cold-.18*latency),
+    radar:clamp8910(1-.10*snowV-.06*wind-.04*cold-.10*latency),
+    thermal:clamp8910(1-.10*snowV-.38*poorVis-.08*cold-.08*latency),
+    rf:clamp8910(1-.04*snowV-.05*wind-.04*poorVis-.05*latency)
+  };
+}
+
+/* STEP 8 — evidence from the existing pipeline.
+   YOLO confidence comes from the selected tracked detection.
+   Radar/thermal/RF are simulation evidence until real sensor adapters
+   replace these values. */
+function sensorEvidence8910(target){
+  let yolo=0;
+  if(target && target.yolo) yolo=clamp8910(target.confidence||0);
+  else if(target) yolo=.35;
+
+  let radar=.35;
+  if(typeof ekf!=="undefined" && ekf && ekf.initialized){
+    const residual=Math.abs(ekf.lastRangeResidual||0);
+    radar=clamp8910(.92-residual/.35);
+  }
+
+  let thermal=target?clamp8910(.58+.22*(target.confidence||0)):0;
+  let rf=target?.rfEvidence!=null?clamp8910(target.rfEvidence):target?.rf?clamp8910(target.rf):.25;
+
+  return {yolo,radar,thermal,rf};
+}
+
+function set8910(prefix,name,value){
+  const pct=Math.round(clamp8910(value)*100);
+  const b=document.getElementById(prefix+name+"Bar");
+  const n=document.getElementById(prefix+name+"Num");
+  if(b)b.style.width=pct+"%";
+  if(n)n.textContent=pct+"%";
+}
+
+function updateSteps8910(target,tempC,windKmh,snow,visibility,latencyMs){
+  const w=environmentWeights8910(tempC,windKmh,snow,visibility,latencyMs);
+  const e=sensorEvidence8910(target);
+
+  set8910("weight","Yolo",w.yolo);
+  set8910("weight","Radar",w.radar);
+  set8910("weight","Thermal",w.thermal);
+  set8910("weight","Rf",w.rf);
+
+  const wy=e.yolo*w.yolo, wr=e.radar*w.radar,
+        wt=e.thermal*w.thermal, wf=e.rf*w.rf;
+
+  set8910("fusion","Yolo",wy);
+  set8910("fusion","Radar",wr);
+  set8910("fusion","Thermal",wt);
+  set8910("fusion","Rf",wf);
+
+  const total=w.yolo+w.radar+w.thermal+w.rf;
+  const fused=total?(wy+wr+wt+wf)/total:0;
+
+  const conf=document.getElementById("fusionConfidenceNum");
+  if(conf)conf.textContent=target?Math.round(fused*100)+"%":"—";
+
+  const env=document.getElementById("envWeightLabel");
+  if(env)env.textContent="T "+Math.round(tempC)+"°C · W "+Math.round(windKmh)+" · V "+Math.round(visibility*100)+"%";
+
+  updateHardwareStatus8910();
+}
+
+/* STEP 10 — dashboard-side receive-only hardware API. */
+window.sensorHardwareBridge={
+  mode:"simulation",
+  lastPacket:null,
+  pushPacket(packet){
+    if(!packet||typeof packet!=="object")return;
+    this.mode="hardware";
+    this.lastPacket=packet;
+    sensorFusion8910.hardware=true;
+    sensorFusion8910.lastHardwareMs=Date.now();
+    sensorFusion8910.lastPacket=packet;
+    window.dispatchEvent(new CustomEvent("sensorHardwarePacket",{detail:packet}));
+  },
+  setSimulation(){
+    this.mode="simulation";
+    sensorFusion8910.hardware=false;
+    sensorFusion8910.lastPacket=null;
+    updateHardwareStatus8910();
+  }
+};
+
+window.addEventListener("sensorHardwarePacket",ev=>{
+  const p=ev.detail||{};
+  [["camera","hwCameraBar","hwCameraNum"],
+   ["radar","hwRadarBar","hwRadarNum"],
+   ["thermal","hwThermalBar","hwThermalNum"],
+   ["rf","hwRfBar","hwRfNum"]].forEach(([key,b,n])=>{
+     const live=!!p[key],bar=document.getElementById(b),num=document.getElementById(n);
+     if(bar)bar.style.width=live?"100%":"12%";
+     if(num)num.textContent=live?"LIVE":"WAIT";
+   });
+});
+
+function updateHardwareStatus8910(){
+  const live=sensorFusion8910.hardware &&
+             (Date.now()-sensorFusion8910.lastHardwareMs<3000);
+  const mode=document.getElementById("hardwareModeLabel");
+  const link=document.getElementById("hardwareLinkNum");
+  if(mode){mode.textContent=live?"HARDWARE":"SIMULATION";mode.className=live?"hw-online":"hw-wait";}
+  if(link){link.textContent=live?"ONLINE":"NOT CONNECTED";link.style.color=live?"#2ee59d":"#6f8ca3";}
+}
+
+/* Read the existing Dashboard 20 environment sliders by their actual IDs. */
+function readEnv8910(){
+  const get=id=>{
+    const el=document.getElementById(id);
+    return el?parseFloat(el.value):NaN;
+  };
+  return {
+    temp:get("tempSlider"),
+    wind:get("windSlider"),
+    snow:get("snowSlider")/100,
+    visibility:get("visibilitySlider")/100,
+    latency:get("latencySlider")
+  };
+}
+
+/* Keep Steps 8/9 synchronized without touching the existing simulator loop. */
+setInterval(()=>{
+  try{
+    const e=readEnv8910();
+    const target=(typeof getLockedTarget==="function")?getLockedTarget():null;
+    updateSteps8910(
+      target,
+      Number.isFinite(e.temp)?e.temp:10,
+      Number.isFinite(e.wind)?e.wind:15,
+      Number.isFinite(e.snow)?e.snow:0,
+      Number.isFinite(e.visibility)?e.visibility:1,
+      Number.isFinite(e.latency)?e.latency:20
+    );
+  }catch(err){}
+},250);
+
+/* Optional Raspberry Pi / edge computer WebSocket. */
+(function connectSensorBridge8910(){
+  try{
+    const ws=new WebSocket("ws://127.0.0.1:8766");
+    ws.onopen=()=>{
+      const m=document.getElementById("hardwareModeLabel");
+      const l=document.getElementById("hardwareLinkNum");
+      if(m){m.textContent="BRIDGE READY";m.className="hw-online";}
+      if(l){l.textContent="CONNECTED";l.style.color="#2ee59d";}
+    };
+    ws.onmessage=ev=>{
+      try{window.sensorHardwareBridge.pushPacket(JSON.parse(ev.data));}catch(err){}
+    };
+    ws.onclose=()=>{sensorFusion8910.hardware=false;updateHardwareStatus8910();};
+    ws.onerror=()=>{sensorFusion8910.hardware=false;updateHardwareStatus8910();};
+  }catch(err){}
+})();
+
+updateHardwareStatus8910();
+/* HPM is represented here as a normalized simulation response event; no real-world HPM power, frequency, antenna, or engagement calculations are used. */
+</script> -->
+<script>
+/* ===== STEPS 8 + 9 + 10 (hardware-aware) =====
+   Replaces the last <script> block of the dashboard (the one that starts with
+   the comment "ADDITIVE STEPS 8 + 9 + 10"). The HTML above it is unchanged. */
+
+const BRIDGE_URL_8910 = "ws://127.0.0.1:8766";
+const HW_STALE_MS_8910 = 3000;
+
+const sensorFusion8910 = {
+  lastPacket: null,
+  lastPacketMs: 0,
+  socketOpen: false
+};
+
+const HW_ROWS_8910 = [
+  ["camera",  "hwCameraBar",  "hwCameraNum"],
+  ["radar",   "hwRadarBar",   "hwRadarNum"],
+  ["thermal", "hwThermalBar", "hwThermalNum"],
+  ["rf",      "hwRfBar",      "hwRfNum"]
+];
+
+function clamp8910(v){ return Math.max(0, Math.min(1, Number(v) || 0)); }
+
+/* ---------- hardware freshness helpers ---------- */
+function hwFresh8910(){
+  return !!sensorFusion8910.lastPacket &&
+         (Date.now() - sensorFusion8910.lastPacketMs) < HW_STALE_MS_8910;
+}
+function hwLive8910(key){
+  const p = sensorFusion8910.lastPacket;
+  return !!(hwFresh8910() && p && p[key]);
+}
+/* A packet field may be `true` (sensor live) or a number 0..1 (live + evidence). */
+function hwEvidence8910(key){
+  const p = sensorFusion8910.lastPacket;
+  if(!hwLive8910(key) || typeof p[key] !== "number") return null;
+  return clamp8910(p[key]);
+}
+
+/* ---------- STEP 9: environment-aware sensor reliability ---------- */
+function environmentWeights8910(tempC, windKmh, snow, visibility, latencyMs){
+  const cold = clamp8910((10 - tempC) / 45);
+  const wind = clamp8910(Math.max(0, windKmh - 15) / 45);
+  const snowV = clamp8910(snow);
+  const poorVis = clamp8910(1 - visibility);
+  const latency = clamp8910(Math.max(0, latencyMs - 20) / 120);
+
+  return {
+    yolo:    clamp8910(1 - .28*poorVis - .14*snowV - .10*wind - .08*cold - .18*latency),
+    radar:   clamp8910(1 - .10*snowV - .06*wind - .04*cold - .10*latency),
+    thermal: clamp8910(1 - .10*snowV - .38*poorVis - .08*cold - .08*latency),
+    rf:      clamp8910(1 - .04*snowV - .05*wind - .04*poorVis - .05*latency)
+  };
+}
+
+/* ---------- STEP 8: evidence per sensor ----------
+   YOLO: real detection confidence (live Roboflow/Pi feed, or simulated target).
+   Radar / thermal / RF: simulated, unless the bridge reports that sensor live
+   with a numeric 0..1 value, in which case the real value is used. */
+function sensorEvidence8910(target){
+  let yolo = 0;
+  if(target && target.yolo) yolo = clamp8910(target.confidence || 0);
+  else if(target) yolo = .35;
+
+  let radar = .35;
+  if(typeof ekf !== "undefined" && ekf && ekf.initialized){
+    const residual = Math.abs(ekf.lastRangeResidual || 0);
+    radar = clamp8910(.92 - residual / .35);
+  }
+
+  let thermal = target ? clamp8910(.58 + .22 * (target.confidence || 0)) : 0;
+  let rf = (target && target.rfEvidence != null) ? clamp8910(target.rfEvidence)
+         : (target && target.rf) ? clamp8910(target.rf) : .25;
+
+  const hr = hwEvidence8910("radar");   if(hr !== null) radar = hr;
+  const ht = hwEvidence8910("thermal"); if(ht !== null) thermal = ht;
+  const hf = hwEvidence8910("rf");      if(hf !== null) rf = hf;
+
+  return { yolo, radar, thermal, rf };
+}
+
+function set8910(prefix, name, value){
+  const pct = Math.round(clamp8910(value) * 100);
+  const b = document.getElementById(prefix + name + "Bar");
+  const n = document.getElementById(prefix + name + "Num");
+  if(b) b.style.width = pct + "%";
+  if(n) n.textContent = pct + "%";
+}
+
+function updateSteps8910(target, tempC, windKmh, snow, visibility, latencyMs){
+  const w = environmentWeights8910(tempC, windKmh, snow, visibility, latencyMs);
+  const e = sensorEvidence8910(target);
+
+  set8910("weight", "Yolo", w.yolo);
+  set8910("weight", "Radar", w.radar);
+  set8910("weight", "Thermal", w.thermal);
+  set8910("weight", "Rf", w.rf);
+
+  const wy = e.yolo * w.yolo, wr = e.radar * w.radar,
+        wt = e.thermal * w.thermal, wf = e.rf * w.rf;
+
+  set8910("fusion", "Yolo", wy);
+  set8910("fusion", "Radar", wr);
+  set8910("fusion", "Thermal", wt);
+  set8910("fusion", "Rf", wf);
+
+  const total = w.yolo + w.radar + w.thermal + w.rf;
+  const fused = total ? (wy + wr + wt + wf) / total : 0;
+
+  const conf = document.getElementById("fusionConfidenceNum");
+  if(conf) conf.textContent = target ? Math.round(fused * 100) + "%" : "—";
+
+  const env = document.getElementById("envWeightLabel");
+  if(env) env.textContent = "T " + Math.round(tempC) + "°C · W " + Math.round(windKmh) +
+                            " · V " + Math.round(visibility * 100) + "%";
+
+  updateHardwareStatus8910();
+}
+
+/* ---------- STEP 10: hardware bridge (receive-only) ---------- */
+window.sensorHardwareBridge = {
+  mode: "simulation",
+  lastPacket: null,
+  pushPacket(packet){
+    if(!packet || typeof packet !== "object") return;
+    this.mode = "hardware";
+    this.lastPacket = packet;
+    sensorFusion8910.lastPacket = packet;
+    sensorFusion8910.lastPacketMs = Date.now();
+    window.dispatchEvent(new CustomEvent("sensorHardwarePacket", { detail: packet }));
+    updateHardwareStatus8910();
+  },
+  setSimulation(){
+    this.mode = "simulation";
+    this.lastPacket = null;
+    sensorFusion8910.lastPacket = null;
+    sensorFusion8910.lastPacketMs = 0;
+    updateHardwareStatus8910();
+  }
+};
+
+/* Single place that renders every Step 10 element, so nothing can be left
+   showing a stale state (called on every packet, socket event and 250 ms tick). */
+function updateHardwareStatus8910(){
+  let liveCount = 0;
+
+  HW_ROWS_8910.forEach(([key, barId, numId]) => {
+    const bar = document.getElementById(barId);
+    const num = document.getElementById(numId);
+    const live = hwLive8910(key);
+    if(live) liveCount++;
+
+    if(live){
+      if(bar) bar.style.width = "100%";
+      if(num){ num.textContent = "LIVE"; num.className = "hw-online"; }
+    }else if(sensorFusion8910.socketOpen){
+      if(bar) bar.style.width = "12%";
+      if(num){ num.textContent = "WAIT"; num.className = "hw-wait"; }
+    }else{
+      if(bar) bar.style.width = "0%";
+      if(num){ num.textContent = "SIM"; num.className = "hw-wait"; }
+    }
+  });
+
+  const total = HW_ROWS_8910.length;
+  const modeText = liveCount === total ? "HARDWARE"
+                 : liveCount > 0       ? "HYBRID"
+                 : sensorFusion8910.socketOpen ? "BRIDGE READY"
+                 : "SIMULATION";
+  const modeClass = liveCount > 0 ? "hw-online"
+                  : sensorFusion8910.socketOpen ? "hw-warn"
+                  : "hw-wait";
+
+  const mode = document.getElementById("hardwareModeLabel");
+  if(mode){ mode.textContent = modeText; mode.className = modeClass; }
+
+  const fusionMode = document.getElementById("fusionModeLabel");
+  if(fusionMode) fusionMode.textContent =
+      liveCount === total ? "HARDWARE" : liveCount > 0 ? "HYBRID" : "SIMULATION";
+
+  const link = document.getElementById("hardwareLinkNum");
+  if(link){
+    const p = sensorFusion8910.lastPacket;
+    if(liveCount > 0){
+      const g = (hwFresh8910() && p && p.gimbal) ? " · PAN " + Math.round(p.gimbal.pan) + "° TILT " + Math.round(p.gimbal.tilt) + "°" : "";
+      link.textContent = "ONLINE · " + liveCount + "/" + total + " LIVE" + g;
+      link.style.color = "#2ee59d";
+    }else if(sensorFusion8910.socketOpen){
+      link.textContent = (p && p.pi_connected === false) ? "SERVER UP · PI OFFLINE" : "CONNECTED · NO SENSORS";
+      link.style.color = "#ffb830";
+    }else{
+      link.textContent = "NOT CONNECTED";
+      link.style.color = "#6f8ca3";
+    }
+  }
+}
+
+/* Environment sliders (snow and visibility are already 0..1 — no /100). */
+function readEnv8910(){
+  const get = id => {
+    const el = document.getElementById(id);
+    return el ? parseFloat(el.value) : NaN;
+  };
+  return {
+    temp: get("tempSlider"),
+    wind: get("windSlider"),
+    snow: get("snowSlider"),
+    visibility: get("visibilitySlider"),
+    latency: get("latencySlider")
+  };
+}
+
+/* Current target WITHOUT the side effects of getLockedTarget():
+   prefer the live Roboflow track, otherwise the simulator's tracked object. */
+function currentTarget8910(){
+  if(typeof yoloLink !== "undefined" && yoloLink.trackingEnabled &&
+     yoloLink.target && yoloLink.target.status !== "DEACTIVATED"){
+    return yoloLink.target;
+  }
+  if(typeof findTrackable === "function" && typeof currentTrackedId !== "undefined" && currentTrackedId){
+    return findTrackable(currentTrackedId) || null;
+  }
+  return null;
+}
+
+setInterval(() => {
+  try{
+    const e = readEnv8910();
+    updateSteps8910(
+      currentTarget8910(),
+      Number.isFinite(e.temp) ? e.temp : 10,
+      Number.isFinite(e.wind) ? e.wind : 15,
+      Number.isFinite(e.snow) ? e.snow : 0,
+      Number.isFinite(e.visibility) ? e.visibility : 1,
+      Number.isFinite(e.latency) ? e.latency : 20
+    );
+  }catch(err){ console.warn("Step 8/9/10 update error", err); }
+}, 250);
+
+/* Bridge WebSocket from server.py (port 8766). Auto-reconnects, so the
+   dashboard may be opened before or after the server. */
+function connectSensorBridge8910(){
+  let ws;
+  try{
+    ws = new WebSocket(BRIDGE_URL_8910);
+  }catch(err){
+    setTimeout(connectSensorBridge8910, 2000);
+    return;
+  }
+  ws.onopen = () => { sensorFusion8910.socketOpen = true; updateHardwareStatus8910(); };
+  ws.onmessage = ev => {
+    try{ window.sensorHardwareBridge.pushPacket(JSON.parse(ev.data)); }catch(err){}
+  };
+  ws.onclose = () => {
+    sensorFusion8910.socketOpen = false;
+    updateHardwareStatus8910();
+    setTimeout(connectSensorBridge8910, 2000);
+  };
+  ws.onerror = () => { try{ ws.close(); }catch(err){} };
+}
+
+connectSensorBridge8910();
+updateHardwareStatus8910();
+/* HPM is represented here as a normalized simulation response event; no real-world HPM power, frequency, antenna, or engagement calculations are used. */
+</script>
+<script>(function(){function syncSampleSearchCard(){const p=document.getElementById("trajectoryPoints"),r=document.getElementById("trajectoryRange"),st=document.getElementById("trajectoryState");const a=document.getElementById("searchTracksSaved"),b=document.getElementById("searchRange"),c=document.getElementById("searchState"),d=document.getElementById("searchTargets");if(a&&p)a.textContent=p.textContent;if(b&&r)b.textContent=r.textContent;if(c&&st)c.textContent=st.textContent;if(d)d.textContent=String(document.querySelectorAll(".trajectory-card").length||0)}syncSampleSearchCard();setInterval(syncSampleSearchCard,500)})();</script></body>
+</html>
