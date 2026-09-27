@@ -4032,15 +4032,20 @@ const yoloLink = {
   neutralizedCount: 0
 };
 const YOLO_WS_URL = (() => {
-  // Optional override: append ?ws=wss://YOUR-BACKEND.example/ws to the
-  // dashboard URL for remote judges. Local development stays on localhost.
   const params = new URLSearchParams(window.location.search);
+
   const configured = params.get('ws');
   if (configured) return configured;
-  if (window.YOLO_WS_URL_OVERRIDE) return window.YOLO_WS_URL_OVERRIDE;
-  return window.location.protocol === 'https:'
-    ? ('wss://' + window.location.host)
-    : 'ws://127.0.0.1:8765';
+
+  if (window.YOLO_WS_URL_OVERRIDE) {
+    return window.YOLO_WS_URL_OVERRIDE;
+  }
+
+  if (window.location.protocol === 'https:') {
+    return 'wss://' + window.location.host + '/ws';
+  }
+
+  return 'ws://127.0.0.1:8765';
 })();
 const YOLO_CAMERA_WIDTH = 640;
 const YOLO_CAMERA_HEIGHT = 512;
@@ -4897,7 +4902,13 @@ updateHardwareStatus8910();
    Replaces the last <script> block of the dashboard (the one that starts with
    the comment "ADDITIVE STEPS 8 + 9 + 10"). The HTML above it is unchanged. */
 
-const BRIDGE_URL_8910 = "ws://127.0.0.1:8766";
+const BRIDGE_URL_8910 = (() => {
+  if (window.location.protocol === 'https:') {
+    return 'wss://' + window.location.host + '/status';
+  }
+
+  return 'ws://127.0.0.1:8766';
+})();
 const HW_STALE_MS_8910 = 3000;
 
 const sensorFusion8910 = {

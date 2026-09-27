@@ -4,6 +4,8 @@ import json
 import os
 import time
 import warnings
+from pathlib import Path
+from http import HTTPStatus
 from types import SimpleNamespace
 
 # Silence optional inference models we don't use (must be set BEFORE importing inference).
@@ -22,12 +24,13 @@ import numpy as np
 from inference import get_model
 from ultralytics.trackers.byte_tracker import BYTETracker
 import websockets
-
+from aiohttp import web
 
 # Dashboard (browser on the same laptop) connects here.
 HOST = "0.0.0.0"
-PORT = 8765
-STATUS_PORT = 8766   # dashboard Step 10 "hardware bridge" status feed
+PORT = int(os.getenv("PORT", "8765"))
+RENDER_MODE = os.getenv("RENDER", "0") == "1"
+STATUS_PORT = int(os.getenv("STATUS_PORT", "8766"))
 
 # Raspberry Pi connects here over the laptop's hotspot.
 # 0.0.0.0 = listen on all adapters (including the hotspot adapter).
@@ -359,7 +362,7 @@ async def websocket_handler(websocket):
                 if frame is not None:
                     browser_camera_state["frame"] = frame
                     browser_camera_state["t"] = time.time()
-    except websockets.exceptions.ConnectionClosed:
+    except Exception:
         pass
     finally:
         clients.discard(websocket)
@@ -389,7 +392,7 @@ async def pi_handler(websocket):
             pi_state["frame"] = frame
             pi_state["id"] += 1
             pi_state["t"] = time.time()
-    except websockets.exceptions.ConnectionClosed:
+    except Exception:
         pass
     finally:
         pi_state["connected"] = False
@@ -401,7 +404,10 @@ async def status_handler(websocket):
     """Dashboard connection for the Step 10 hardware-bridge panel."""
     status_clients.add(websocket)
     try:
-        await websocket.wait_closed()
+        async for _ in websocket:
+            pass
+    except Exception:
+        pass
     finally:
         status_clients.discard(websocket)
 
@@ -580,7 +586,7 @@ async def camera_loop(client, tracker):
                     local_camera_state["t"] = 0.0
 
             # 3) No browser/Pi camera -> automatically use the laptop webcam.
-            if frame is None:
+            if not RENDER_MODE and frame is None:
                 if open_local_camera():
                     ok, local_frame = local_cap.read()
                     if ok and local_frame is not None:
@@ -695,19 +701,178 @@ async def camera_loop(client, tracker):
         if os.getenv("SHOW_LOCAL_PREVIEW", "0") == "1":
             cv2.destroyAllWindows()
 
+class AioWebSocketAdapter:
+    """
+    Small adapter that makes aiohttp WebSocketResponse behave enough like
+    the existing websockets connection objects used by the dashboard code.
+    """
+
+    def __init__(self, ws, remote_address=None):
+        self.ws = ws
+        self.remote_address = remote_address
+
+    def __aiter__(self):
+        return self._messages()
+
+    async def _messages(self):
+        async for msg in self.ws:
+            if msg.type == web.WSMsgType.BINARY:
+                yield msg.data
+
+            elif msg.type == web.WSMsgType.TEXT:
+                yield msg.data
+
+            elif msg.type in (
+                web.WSMsgType.CLOSE,
+                web.WSMsgType.CLOSED,
+                web.WSMsgType.ERROR,
+            ):
+                break
+
+    async def send(self, data):
+        if isinstance(data, (bytes, bytearray, memoryview)):
+            await self.ws.send_bytes(bytes(data))
+        else:
+            await self.ws.send_str(str(data))
+
+    async def close(self):
+        await self.ws.close()
+
+async def dashboard_page(request):
+    return web.FileResponse("dashboard.html")
+
+
+async def health_check(request):
+    return web.Response(text="OK")
+
+
+async def render_detection_ws(request):
+    ws = web.WebSocketResponse(
+        max_msg_size=4 * 1024 * 1024,
+        heartbeat=20,
+    )
+
+    await ws.prepare(request)
+
+    adapter = AioWebSocketAdapter(
+        ws,
+        request.remote,
+    )
+
+    await websocket_handler(adapter)
+
+    return ws
+
+
+async def render_status_ws(request):
+    ws = web.WebSocketResponse(
+        max_msg_size=4 * 1024 * 1024,
+        heartbeat=20,
+    )
+
+    await ws.prepare(request)
+
+    adapter = AioWebSocketAdapter(
+        ws,
+        request.remote,
+    )
+
+    await status_handler(adapter)
+
+    return ws
+
+
+async def create_render_app(client, tracker):
+    app = web.Application()
+
+    app.router.add_get("/", dashboard_page)
+    app.router.add_get("/dashboard.html", dashboard_page)
+
+    app.router.add_get("/healthz", health_check)
+
+    app.router.add_get("/ws", render_detection_ws)
+    app.router.add_get("/status", render_status_ws)
+
+    return app
 
 async def main():
     client = load_local_model()
     tracker = create_tracker()
 
-    async with websockets.serve(websocket_handler, HOST, PORT, max_size=4 * 1024 * 1024), \
-               websockets.serve(status_handler, HOST, STATUS_PORT), \
-               websockets.serve(pi_handler, PI_HOST, PI_PORT, max_size=4 * 1024 * 1024, compression=None):
-        status_task = asyncio.create_task(status_broadcaster())
+    if RENDER_MODE:
+        print("========================================")
+        print("RUNNING IN RENDER MODE")
+        print(f"PORT = {PORT}")
+        print("Browser webcam mode enabled")
+        print("Raspberry Pi mode disabled")
+        print("========================================")
+
+        app = await create_render_app(client, tracker)
+
+        runner = web.AppRunner(app)
+        await runner.setup()
+
+        site = web.TCPSite(
+            runner,
+            HOST,
+            PORT,
+        )
+
+        await site.start()
+
+        print(f"Render server listening on {HOST}:{PORT}")
+
+        status_task = asyncio.create_task(
+            status_broadcaster()
+        )
+
+        camera_task = asyncio.create_task(
+            camera_loop(client, tracker)
+        )
+
         try:
-            await camera_loop(client, tracker)
+            await asyncio.gather(
+                status_task,
+                camera_task,
+            )
         finally:
-            status_task.cancel()
+            for task in (status_task, camera_task):
+                task.cancel()
+
+            await runner.cleanup()
+
+    else:
+        print("========================================")
+        print("RUNNING IN LOCAL MODE")
+        print("========================================")
+
+        async with websockets.serve(
+            websocket_handler,
+            HOST,
+            PORT,
+            max_size=4 * 1024 * 1024
+        ), \
+        websockets.serve(
+            status_handler,
+            HOST,
+            STATUS_PORT
+        ), \
+        websockets.serve(
+            pi_handler,
+            PI_HOST,
+            PI_PORT,
+            max_size=4 * 1024 * 1024,
+            compression=None
+        ):
+
+            status_task = asyncio.create_task(
+                status_broadcaster()
+            )
+
+            try:
+                await camera_loop(client, tracker)
+            finally:
+                status_task.cancel()
 
 
 if __name__ == "__main__":
