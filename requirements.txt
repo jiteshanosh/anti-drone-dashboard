@@ -32,7 +32,6 @@ multidict==6.9.0
 mypy_extensions==1.1.0
 networkx==3.6.1
 numpy==2.2.6
-nvidia-ml-py==12.570.0
 opencv-python==4.10.0.84
 packaging==24.0
 pillow==12.3.0
